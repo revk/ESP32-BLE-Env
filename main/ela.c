@@ -236,6 +236,6 @@ ela_run (void)
 
    /* Start the task */
    nimble_port_freertos_init (ble_task);
-   ESL_LOGI(TAG,"Starting ELA monitoring");
+   ESP_LOGI(TAG,"Starting ELA monitoring");
 }
 #endif
