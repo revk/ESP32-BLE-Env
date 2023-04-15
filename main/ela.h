@@ -35,8 +35,8 @@ void ela_clean(void);           // Delete old entries
 void ela_run(void);             // Run BLE for ELA
 #else
 
-#define	ela_run()
-#define	ela_clean()
-#define	ela_expire(x)
+#define	ela_run()	do{}while(0)
+#define	ela_clean()	do{}while(0)
+#define	ela_expire(x)	do{}while(0)
 
 #endif
