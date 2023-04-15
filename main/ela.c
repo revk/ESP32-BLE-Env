@@ -193,6 +193,7 @@ static uint8_t ble_addr_type;
 static void
 ble_on_sync (void)
 {
+   ESP_LOGI (TAG, "BLE Discovery Started");
    int rc;
 
    rc = ble_hs_id_infer_auto (0, &ble_addr_type);
@@ -235,5 +236,6 @@ ela_run (void)
 
    /* Start the task */
    nimble_port_freertos_init (ble_task);
+   ESL_LOGI(TAG,"Starting ELA monitoring");
 }
 #endif
