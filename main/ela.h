@@ -1,4 +1,5 @@
 // ELA Blue Coin stuff
+#ifdef	CONFIG_BT_NIMBLE_ENABLED
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
 #include "host/ble_hs.h"
@@ -32,3 +33,4 @@ void ela_expire(uint32_t missingtime);  // Expire (i.e. missing)
 void ela_clean(void);           // Delete old entries
 
 void ela_run(void);             // Run BLE for ELA
+#endif
