@@ -9,10 +9,17 @@ SUFFIX := $(shell components/ESP32-RevK/buildsuffix)
 all:	
 	@echo Make: $(PROJECT_NAME)$(SUFFIX).bin
 	@idf.py build
-	@cp build/$(PROJECT_NAME).bin $(PROJECT_NAME)$(SUFFIX).bin
+	@cp --remove-destination build/$(PROJECT_NAME).bin $(PROJECT_NAME)$(SUFFIX).bin
 	@echo Done: $(PROJECT_NAME)$(SUFFIX).bin
 
+<<<<<<< HEAD
 set:    wroom solo pico s3
+=======
+issue:  set
+	cp --remove-destination BlueCoinT*.bin release
+
+set:    wroom solo pico
+>>>>>>> 2fe046a90364ea94bc5da4cae30d6076d6a0642f
 
 s3:
 	components/ESP32-RevK/setbuildsuffix -S3-MINI-N4-R2
