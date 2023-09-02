@@ -12,14 +12,10 @@ all:
 	@cp --remove-destination build/$(PROJECT_NAME).bin $(PROJECT_NAME)$(SUFFIX).bin
 	@echo Done: $(PROJECT_NAME)$(SUFFIX).bin
 
-<<<<<<< HEAD
-set:    wroom solo pico s3
-=======
 issue:  set
 	cp --remove-destination BlueCoinT*.bin release
 
-set:    wroom solo pico
->>>>>>> 2fe046a90364ea94bc5da4cae30d6076d6a0642f
+set:    wroom solo pico s3
 
 s3:
 	components/ESP32-RevK/setbuildsuffix -S3-MINI-N4-R2
