@@ -22,6 +22,7 @@ struct ela_s {
    int16_t temp;                // Temp
    int16_t tempreport;          // Temp last reported
    uint16_t volt;               // Bat voltage
+   uint16_t hum;                // Hum %*100
    int8_t bat;                  // Bat %
    uint8_t found:1;
    uint8_t missing:1;

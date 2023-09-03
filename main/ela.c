@@ -44,22 +44,27 @@ ela_gap_disc (struct ble_gap_event *event)
    const uint8_t *temp = NULL;
    const uint8_t *bat = 0;
    const uint8_t *volt = 0;
+   const uint8_t *env = 0;
    uint16_t man = 0;
    while (p < e)
    {
       const uint8_t *n = p + *p + 1;
       if (n > e)
          break;
+      // Type 08/09 are name
+      // Type 16 is 16 bit UUID
       if (p[0] > 1 && (p[1] == 8 || p[1] == 9))
          name = p;
       else if (*p == 5 && p[1] == 0x16 && p[2] == 0x6E && p[3] == 0x2A)
-         temp = p + 4;
+         temp = p + 4;          // Temp UUID 2A6E
       else if (*p == 4 && p[1] == 0x16 && p[2] == 0x0F && p[3] == 0x18)
-         bat = p + 4;
+         bat = p + 4;           // Bat UUID 180F
       else if (*p == 4 && p[1] == 0x16 && p[2] == 0x19 && p[3] == 0x2A)
-         bat = p + 4;
+         bat = p + 4;           // Bat UUID 2A16
+      else if (*p == 18 && p[1] == 0x16 && p[2] == 0x1A && p[3] == 0x18)
+         env = p;               // Env UUID 181A
       if (*p >= 3 && p[1] == 0xFF)
-      {
+      {                         // Custom type - with manufacturer code
          man = ((p[3] << 8) | p[2]);
          if (man == 0x757)
          {
@@ -73,7 +78,13 @@ ela_gap_disc (struct ble_gap_event *event)
       }
       p = n;
    }
-   if (!d && man != 0x0757 && (!temp || !name))
+   char macname[15];
+   if (env && !name && *env >= 9)
+   {
+      sprintf (macname, "%c-%02X%02X%02X%02X%02X%02X", 13, env[9], env[8], env[7], env[6], env[5], env[4]);    // Env data, or extended env data
+      name = (const uint8_t *) macname;
+   }
+   if (!d && !env && man != 0x0757 && (!temp || !name))
       return 0;                 // Not temp device
    if (!d)
       d = ela_find (&event->disc.addr, 1);
@@ -83,11 +94,29 @@ ela_gap_disc (struct ble_gap_event *event)
       d->name[d->namelen] = 0;
    }
    if (temp)
-      d->temp = ((temp[1] << 8) | temp[0]);
+      d->temp = ((temp[1] << 8) | temp[0]);     // C*100
    if (bat)
-      d->bat = *bat;
+      d->bat = *bat;            // percent
    if (volt)
-      d->volt = ((volt[1] << 8) + volt[0]);;
+      d->volt = ((volt[1] << 8) + volt[0]);     // mV
+   if (env)
+   {
+      if (*env == 18)
+      {                         // Extended (custom)
+         ESP_LOG_BUFFER_HEX (event->disc.event_type == BLE_HCI_ADV_RPT_EVTYPE_SCAN_RSP ? "Rsp" : "Adv", event->disc.data,
+                             event->disc.length_data);
+         d->temp = ((env[11] << 8) | env[10]);  // C * 100
+         d->hum = ((env[13] << 8) | env[12]);   // Hum %*100
+         d->volt = ((env[15] << 8) | env[14]);  // mV
+         d->bat = env[16];      // %
+	 // counter
+	 // flags
+         ESP_LOGE (TAG, "Temp=%d hum=%d volt=%d bat=%d", d->temp, d->hum, d->volt, d->bat);
+      } else if (*env == 15)
+      {                         // Standard ATC1441
+         // TODO - documentation does not agree on number of bytes
+      }
+   }
    d->rssi = event->disc.rssi;
    if (d->missing)
    {
@@ -236,6 +265,6 @@ ela_run (void)
 
    /* Start the task */
    nimble_port_freertos_init (ble_task);
-   ESP_LOGI(TAG,"Starting ELA monitoring");
+   ESP_LOGI (TAG, "Starting ELA monitoring");
 }
 #endif

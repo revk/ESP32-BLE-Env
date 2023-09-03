@@ -141,7 +141,9 @@ void app_main()
             if (d->bat)
                jo_litf(j, "bat", "%d", d->bat);
             if (d->volt)
-               jo_litf(j, "voltage", "%d.%03d", d->volt / 1000, d->volt % 1000);
+               jo_litf(j, "voltage", "%u.%03u", d->volt / 1000, d->volt % 1000);
+            if (d->hum)
+               jo_litf(j, "hum","%u.%02u", d->hum / 100, d->hum % 100);
             jo_int(j, "rssi", d->rssi);
             revk_info("report", &j);
             ESP_LOGI(TAG, "Report %s \"%s\" %d (%s %d)", ble_addr_format(&d->addr), d->name, d->rssi, d->better, d->betterrssi);
