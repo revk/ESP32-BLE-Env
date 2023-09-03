@@ -103,15 +103,14 @@ ela_gap_disc (struct ble_gap_event *event)
    {
       if (*env == 18)
       {                         // Extended (custom)
-         ESP_LOG_BUFFER_HEX (event->disc.event_type == BLE_HCI_ADV_RPT_EVTYPE_SCAN_RSP ? "Rsp" : "Adv", event->disc.data,
-                             event->disc.length_data);
+         //ESP_LOG_BUFFER_HEX (event->disc.event_type == BLE_HCI_ADV_RPT_EVTYPE_SCAN_RSP ? "Rsp" : "Adv", event->disc.data, event->disc.length_data);
          d->temp = ((env[11] << 8) | env[10]);  // C * 100
          d->hum = ((env[13] << 8) | env[12]);   // Hum %*100
          d->volt = ((env[15] << 8) | env[14]);  // mV
          d->bat = env[16];      // %
 	 // counter
 	 // flags
-         ESP_LOGE (TAG, "Temp=%d hum=%d volt=%d bat=%d", d->temp, d->hum, d->volt, d->bat);
+         //ESP_LOGE (TAG, "Temp=%d hum=%d volt=%d bat=%d", d->temp, d->hum, d->volt, d->bat);
       } else if (*env == 15)
       {                         // Standard ATC1441
          // TODO - documentation does not agree on number of bytes
