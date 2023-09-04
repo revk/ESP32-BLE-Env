@@ -19,7 +19,9 @@ bleenv_find (ble_addr_t * a, int make)
       return d;
    if (!d)
    {
-      d = malloc (sizeof (*d));
+      d = mallocspi (sizeof (*d));
+      if (!d)
+         return d;
       memset (d, 0, sizeof (*d));
       d->addr = *a;
       d->next = bleenv;
@@ -81,7 +83,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
    char macname[15];
    if (env && !name && *env >= 9)
    {
-      sprintf (macname, "%c-%02X%02X%02X%02X%02X%02X", 13, env[9], env[8], env[7], env[6], env[5], env[4]);    // Env data, or extended env data
+      sprintf (macname, "%c-%02X%02X%02X%02X%02X%02X", 13, env[9], env[8], env[7], env[6], env[5], env[4]);     // Env data, or extended env data
       name = (const uint8_t *) macname;
    }
    if (!d && !env && man != 0x0757 && (!temp || !name))
@@ -108,8 +110,8 @@ bleenv_gap_disc (struct ble_gap_event *event)
          d->hum = ((env[13] << 8) | env[12]);   // Hum %*100
          d->volt = ((env[15] << 8) | env[14]);  // mV
          d->bat = env[16];      // %
-	 // counter
-	 // flags
+         // counter
+         // flags
          //ESP_LOGE (TAG, "Temp=%d hum=%d volt=%d bat=%d", d->temp, d->hum, d->volt, d->bat);
       } else if (*env == 15)
       {                         // Standard ATC1441
