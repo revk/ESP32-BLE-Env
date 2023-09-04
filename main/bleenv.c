@@ -2,17 +2,17 @@
 
 #include "revk.h"
 #ifdef CONFIG_BT_NIMBLE_ENABLED
-#include "ela.h"
+#include "bleenv.h"
 
 static const char TAG[] = "ELA";
 
-ela_t *ela = NULL;
+bleenv_t *bleenv = NULL;
 
-ela_t *
-ela_find (ble_addr_t * a, int make)
+bleenv_t *
+bleenv_find (ble_addr_t * a, int make)
 {                               // Find (create) a device record
-   ela_t *d;
-   for (d = ela; d; d = d->next)
+   bleenv_t *d;
+   for (d = bleenv; d; d = d->next)
       if (d->addr.type == a->type && !memcmp (d->addr.val, a->val, 6))
          break;
    if (!d && !make)
@@ -22,22 +22,22 @@ ela_find (ble_addr_t * a, int make)
       d = malloc (sizeof (*d));
       memset (d, 0, sizeof (*d));
       d->addr = *a;
-      d->next = ela;
+      d->next = bleenv;
       d->missing = 1;
-      ela = d;
+      bleenv = d;
    }
    d->last = uptime ();
    return d;
 }
 
 int
-ela_gap_disc (struct ble_gap_event *event)
+bleenv_gap_disc (struct ble_gap_event *event)
 {
    const uint8_t *p = event->disc.data,
       *e = p + event->disc.length_data;
    if (e > p + 31)
       return 0;                 // Silly
-   ela_t *d = ela_find (&event->disc.addr, 0);
+   bleenv_t *d = bleenv_find (&event->disc.addr, 0);
    //if (d) ESP_LOG_BUFFER_HEX(event->disc.event_type == BLE_HCI_ADV_RPT_EVTYPE_SCAN_RSP ? "Rsp" : "Adv", event->disc.data, event->disc.length_data);
    // Check if a temp device
    const uint8_t *name = NULL;
@@ -87,7 +87,7 @@ ela_gap_disc (struct ble_gap_event *event)
    if (!d && !env && man != 0x0757 && (!temp || !name))
       return 0;                 // Not temp device
    if (!d)
-      d = ela_find (&event->disc.addr, 1);
+      d = bleenv_find (&event->disc.addr, 1);
    if (d->namelen != *name - 1 || memcmp (d->name, name + 2, d->namelen))
    {
       memcpy (d->name, name + 2, d->namelen = *name - 1);
@@ -128,18 +128,18 @@ ela_gap_disc (struct ble_gap_event *event)
 }
 
 void
-ela_expire (uint32_t missingtime)
+bleenv_expire (uint32_t missingtime)
 {
    uint32_t now = uptime ();
    // Devices missing
-   for (ela_t * d = ela; d; d = d->next)
+   for (bleenv_t * d = bleenv; d; d = d->next)
       if (!d->missing && d->last + missingtime < now)
       {                         // Missing
          d->missing = 1;
          ESP_LOGI (TAG, "Missing %s %s", ble_addr_format (&d->addr), d->name);
       }
    // Devices found
-   for (ela_t * d = ela; d; d = d->next)
+   for (bleenv_t * d = bleenv; d; d = d->next)
       if (d->found)
       {
          d->found = 0;
@@ -148,15 +148,15 @@ ela_expire (uint32_t missingtime)
 }
 
 void
-ela_clean (void)
+bleenv_clean (void)
 {
    if (ble_gap_disc_active ())
       return;                   // maybe use a mutex instead
    uint32_t now = uptime ();
-   ela_t **dd = &ela;
+   bleenv_t **dd = &bleenv;
    while (*dd)
    {
-      ela_t *d = *dd;
+      bleenv_t *d = *dd;
       if (d->last + 300 < now)
       {
          ESP_LOGD (TAG, "Forget %s %s", ble_addr_format (&d->addr), d->name);
@@ -196,7 +196,7 @@ ble_gap_event (struct ble_gap_event *event, void *arg)
    {
    case BLE_GAP_EVENT_DISC:
       {
-         ela_gap_disc (event);
+         bleenv_gap_disc (event);
          break;
       }
    default:
@@ -249,7 +249,7 @@ ble_task (void *param)
 }
 
 void
-ela_run (void)
+bleenv_run (void)
 {                               // Just run BLE for ELA only
    REVK_ERR_CHECK (esp_wifi_set_ps (WIFI_PS_MIN_MODEM));        /* default mode, but library may have overridden, needed for BLE at same time as wifi */
    nimble_port_init ();

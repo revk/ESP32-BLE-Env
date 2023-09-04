@@ -7,9 +7,9 @@
 #include "host/ble_hs.h"
 #include "host/ble_uuid.h"
 
-typedef struct ela_s ela_t;
-struct ela_s {
-   ela_t *next;                 // Linked list
+typedef struct bleenv_s bleenv_t;
+struct bleenv_s {
+   bleenv_t *next;                 // Linked list
    ble_addr_t addr;             // Address (includes type)
    uint8_t namelen;             // Device name length
    char name[32];               // Device name (null terminated)
@@ -27,13 +27,13 @@ struct ela_s {
    uint8_t found:1;
    uint8_t missing:1;
 };
-extern ela_t *ela;
+extern bleenv_t *bleenv;
 
 const char *ble_addr_format(ble_addr_t * a);
-ela_t *ela_find(ble_addr_t * a, int make);      // Find a device by address
-int ela_gap_disc(struct ble_gap_event *event);  // Handle GAP disc event
-void ela_expire(uint32_t missingtime);  // Expire (i.e. missing)
-void ela_clean(void);           // Delete old entries
+bleenv_t *bleenv_find(ble_addr_t * a, int make);      // Find a device by address
+int bleenv_gap_disc(struct ble_gap_event *event);  // Handle GAP disc event
+void bleenv_expire(uint32_t missingtime);  // Expire (i.e. missing)
+void bleenv_clean(void);           // Delete old entries
 
-void ela_run(void);             // Run BLE for ELA
+void bleenv_run(void);             // Run BLE for ELA
 #endif

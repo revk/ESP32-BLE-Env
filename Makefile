@@ -3,7 +3,7 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := BlueCoinT
+PROJECT_NAME := BLE-Env
 SUFFIX := $(shell components/ESP32-RevK/buildsuffix)
 
 all:	
@@ -13,7 +13,7 @@ all:
 	@echo Done: $(PROJECT_NAME)$(SUFFIX).bin
 
 issue:  set
-	cp --remove-destination BlueCoinT*.bin release
+	cp --remove-destination BLE-Env*.bin release
 
 set:    wroom solo pico s3
 

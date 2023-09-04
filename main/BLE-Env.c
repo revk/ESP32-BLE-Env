@@ -2,7 +2,7 @@
 /* Copyright ©2022 - 2023 Adrian Kennard, Andrews & Arnold Ltd.See LICENCE file for details .GPL 3.0 */
 
 static __attribute__((unused))
-     const char TAG[] = "BlueCoinT";
+     const char TAG[] = "BLE-Env";
 
 #include "revk.h"
 #include "esp_sleep.h"
@@ -14,7 +14,7 @@ static __attribute__((unused))
 #include "host/util/util.h"
 #include "console/console.h"
 #include <driver/gpio.h>
-#include "ela.h"
+#include "bleenv.h"
 
 #ifndef	CONFIG_SOC_BLE_SUPPORTED
 #error	You need CONFIG_SOC_BLE_SUPPORTED
@@ -61,7 +61,7 @@ settings
                a.val[5 - i] =
                   (((isalpha (add[i * 3]) ? 9 : 0) + (add[i * 3] & 0xF)) << 4) + (isalpha (add[i * 3 + 1]) ? 9 : 0) +
                   (add[i * 3 + 1] & 0xF);
-            ela_t *d = ela_find (&a, 0);
+            bleenv_t *d = bleenv_find (&a, 0);
             if (d)
             {
                int c = strcmp (target, d->better);
@@ -83,7 +83,7 @@ settings
       return NULL;              //Not for us or not a command from main MQTT
    if (!strcmp (suffix, "connect"))
    {
-      lwmqtt_subscribe (revk_mqtt (0), "info/BlueCoinT/#");
+      lwmqtt_subscribe (revk_mqtt (0), "info/BLE-Env/#");
    }
    if (!strcmp (suffix, "shutdown"))
       httpd_stop (webserver);
@@ -112,19 +112,19 @@ app_main ()
 
    revk_wait_mqtt (60);
 
-   ela_run ();
+   bleenv_run ();
 
    /* main loop */
    while (1)
    {
       usleep (100000);
       uint32_t now = uptime ();
-      ela_expire (missingtime);
-      for (ela_t * d = ela; d; d = d->next)
+      bleenv_expire (missingtime);
+      for (bleenv_t * d = bleenv; d; d = d->next)
          if (*d->better && d->lastbetter + reporting * 3 / 2 < now)
             *d->better = 0;     // Not seeing better
       // Reporting
-      for (ela_t * d = ela; d; d = d->next)
+      for (bleenv_t * d = bleenv; d; d = d->next)
          if (!d->missing && (d->lastreport + reporting <= now || d->tempreport + temprise < d->temp))
          {
             d->lastreport = now;
@@ -152,7 +152,7 @@ app_main ()
             ESP_LOGI (TAG, "Report %s \"%s\" %d (%s %d)", ble_addr_format (&d->addr), d->name, d->rssi, d->better, d->betterrssi);
          }
 
-      ela_clean ();
+      bleenv_clean ();
    }
    return;
 }
