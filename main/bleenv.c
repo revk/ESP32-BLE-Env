@@ -4,7 +4,7 @@
 #ifdef CONFIG_BT_NIMBLE_ENABLED
 #include "bleenv.h"
 
-static const char TAG[] = "ELA";
+static const char TAG[] = "bleenv";
 
 bleenv_t *bleenv = NULL;
 
@@ -44,9 +44,10 @@ bleenv_gap_disc (struct ble_gap_event *event)
    // Check if a temp device
    const uint8_t *name = NULL;
    const uint8_t *temp = NULL;
-   const uint8_t *bat = 0;
-   const uint8_t *volt = 0;
-   const uint8_t *env = 0;
+   const uint8_t *bat = NULL;
+   const uint8_t *volt = NULL;
+   const uint8_t *hum = NULL;
+   const uint8_t *env = NULL;
    uint16_t man = 0;
    while (p < e)
    {
@@ -65,6 +66,17 @@ bleenv_gap_disc (struct ble_gap_event *event)
          bat = p + 4;           // Bat UUID 2A16
       else if (*p == 18 && p[1] == 0x16 && p[2] == 0x1A && p[3] == 0x18)
          env = p;               // Env UUID 181A
+      else if (*p >= 3 && p[1] == 0x16 && p[2] == 0x1C && p[3] == 0x18)
+      { // Used for BT Home v1
+	 const uint8_t *d=p+4;
+	 while(d<n)
+	 { // first byte is type(3) and len(5) where type is 0=uint, 1=int, 2=float, 3=string, 4=AC, next byte is meaning
+		 if(*d==0x02&&d[1]==0x01)bat=d+2;
+		 else if(*d==0x23&&d[1]==0x02)temp=d+2;
+		 else if(*d==0x03&&d[1]==0x03)hum=d+2;
+		 d+=1+(*d&0x1F);
+	 }
+      }
       if (*p >= 3 && p[1] == 0xFF)
       {                         // Custom type - with manufacturer code
          man = ((p[3] << 8) | p[2]);
@@ -80,18 +92,17 @@ bleenv_gap_disc (struct ble_gap_event *event)
       }
       p = n;
    }
+   if (!d && !env && man != 0x0757&&!temp)return 0;
    char macname[15];
-   if (env && !name && *env >= 9)
-   {
-      sprintf (macname, "%c-%02X%02X%02X%02X%02X%02X", 13, env[9], env[8], env[7], env[6], env[5], env[4]);     // Env data, or extended env data
+   if(!name)
+   { // Make a name from MAC
+      sprintf (macname, "%c-%02X%02X%02X%02X%02X%02X", 13, event->disc.addr.val[5], event->disc.addr.val[4], event->disc.addr.val[3], event->disc.addr.val[2], event->disc.addr.val[1], event->disc.addr.val[0]);
       name = (const uint8_t *) macname;
    }
-   if (!d && !env && man != 0x0757 && (!temp || !name))
-      return 0;                 // Not temp device
    if (!d)
       d = bleenv_find (&event->disc.addr, 1);
    if (d->namelen != *name - 1 || memcmp (d->name, name + 2, d->namelen))
-   {
+   { // Update name
       memcpy (d->name, name + 2, d->namelen = *name - 1);
       d->name[d->namelen] = 0;
    }
@@ -101,6 +112,8 @@ bleenv_gap_disc (struct ble_gap_event *event)
       d->bat = *bat;            // percent
    if (volt)
       d->volt = ((volt[1] << 8) + volt[0]);     // mV
+   if (hum)
+      d->hum = ((hum[1] << 8) + hum[0]);     // Hum*100
    if (env)
    {
       if (*env == 18)
@@ -113,10 +126,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
          // counter
          // flags
          //ESP_LOGE (TAG, "Temp=%d hum=%d volt=%d bat=%d", d->temp, d->hum, d->volt, d->bat);
-      } else if (*env == 15)
-      {                         // Standard ATC1441
-         // TODO - documentation does not agree on number of bytes
-      }
+	 }
    }
    d->rssi = event->disc.rssi;
    if (d->missing)
