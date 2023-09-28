@@ -2,6 +2,10 @@
 
 WiFi/MQTT reporting of BLE temperature sensors (BluecoinT, and Telink reflashed with pvvx)
 
+## Setup
+
+Build with WiFi and MQTT settings in config, and use `settings` to make changes as per https://github.com/revk/ESP32-RevK
+
 ## Multiple devices
 
 The system is designed to allow one or more devices to listen for BLE temperature sensors and report to a common MQTT server. The devices all listen for the MQTT messages. The idea is that in general only one of the monitoring devices reports for each BLE sensor seen, based on whichever sees the stringest signal (`rssi`). Obviously if a device moves or is on the edge between two monitoring devices there could be some overlap/duplication, but generally anything monitoring the reports via MQTT will not have to handle multiple duplicate reports, and hence reduce clutter.
