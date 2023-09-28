@@ -67,15 +67,20 @@ bleenv_gap_disc (struct ble_gap_event *event)
       else if (*p == 18 && p[1] == 0x16 && p[2] == 0x1A && p[3] == 0x18)
          env = p;               // Env UUID 181A
       else if (*p >= 3 && p[1] == 0x16 && p[2] == 0x1C && p[3] == 0x18)
-      { // Used for BT Home v1
-	 const uint8_t *d=p+4;
-	 while(d<n)
-	 { // first byte is type(3) and len(5) where type is 0=uint, 1=int, 2=float, 3=string, 4=AC, next byte is meaning
-		 if(*d==0x02&&d[1]==0x01)bat=d+2;
-		 else if(*d==0x23&&d[1]==0x02)temp=d+2;
-		 else if(*d==0x03&&d[1]==0x03)hum=d+2;
-		 d+=1+(*d&0x1F);
-	 }
+      {                         // Used for BT Home v1
+         const uint8_t *d = p + 4;
+         while (d < n)
+         {                      // first byte is type(3) and len(5) where type is 0=uint, 1=int, 2=float, 3=string, 4=AC, next byte is meaning
+            if (*d == 0x02 && d[1] == 0x01)
+               bat = d + 2;
+            else if (*d == 0x23 && d[1] == 0x02)
+               temp = d + 2;
+            else if (*d == 0x03 && d[1] == 0x03)
+               hum = d + 2;
+            else if (*d == 0x03 && d[1] == 0x0C)
+               volt = d + 2;
+            d += 1 + (*d & 0x1F);
+         }
       }
       if (*p >= 3 && p[1] == 0xFF)
       {                         // Custom type - with manufacturer code
@@ -92,17 +97,19 @@ bleenv_gap_disc (struct ble_gap_event *event)
       }
       p = n;
    }
-   if (!d && !env && man != 0x0757&&!temp)return 0;
+   if (!d && !env && man != 0x0757 && !temp)
+      return 0;
    char macname[15];
-   if(!name)
-   { // Make a name from MAC
-      sprintf (macname, "%c-%02X%02X%02X%02X%02X%02X", 13, event->disc.addr.val[5], event->disc.addr.val[4], event->disc.addr.val[3], event->disc.addr.val[2], event->disc.addr.val[1], event->disc.addr.val[0]);
+   if (!name)
+   {                            // Make a name from MAC
+      sprintf (macname, "%c-%02X%02X%02X%02X%02X%02X", 13, event->disc.addr.val[5], event->disc.addr.val[4],
+               event->disc.addr.val[3], event->disc.addr.val[2], event->disc.addr.val[1], event->disc.addr.val[0]);
       name = (const uint8_t *) macname;
    }
    if (!d)
       d = bleenv_find (&event->disc.addr, 1);
    if (d->namelen != *name - 1 || memcmp (d->name, name + 2, d->namelen))
-   { // Update name
+   {                            // Update name
       memcpy (d->name, name + 2, d->namelen = *name - 1);
       d->name[d->namelen] = 0;
    }
@@ -113,7 +120,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
    if (volt)
       d->volt = ((volt[1] << 8) + volt[0]);     // mV
    if (hum)
-      d->hum = ((hum[1] << 8) + hum[0]);     // Hum*100
+      d->hum = ((hum[1] << 8) + hum[0]);        // Hum*100
    if (env)
    {
       if (*env == 18)
@@ -126,7 +133,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
          // counter
          // flags
          //ESP_LOGE (TAG, "Temp=%d hum=%d volt=%d bat=%d", d->temp, d->hum, d->volt, d->bat);
-	 }
+      }
    }
    d->rssi = event->disc.rssi;
    if (d->missing)
