@@ -21,7 +21,7 @@ The devices understood are
 A typical message is
 
 ```
-2023-09-28 15:43:49.986560:info/BLE-Env/70041DCD4214/report {"address":"A4:C1:38:47:DE:8E","name":"A4C13847DE8E","temp":-18.60,"bat":45,"voltage":2.520,"rh":52.78,"rssi":-63}
+info/BLE-Env/70041DCD4214/report {"address":"A4:C1:38:47:DE:8E","name":"A4C13847DE8E","temp":-18.60,"bat":45,"voltage":2.520,"rh":52.78,"rssi":-63}
 ```
 
 * In this example `70041DCD4214` is the hostname of the monitoring device, which can be set if needed using `hostname` setting.
