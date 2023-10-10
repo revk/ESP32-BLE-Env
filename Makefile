@@ -9,11 +9,11 @@ SUFFIX := $(shell components/ESP32-RevK/buildsuffix)
 all:	
 	@echo Make: $(PROJECT_NAME)$(SUFFIX).bin
 	@idf.py build
-	@cp --remove-destination build/$(PROJECT_NAME).bin $(PROJECT_NAME)$(SUFFIX).bin
+	@cp build/$(PROJECT_NAME).bin $(PROJECT_NAME)$(SUFFIX).bin
 	@echo Done: $(PROJECT_NAME)$(SUFFIX).bin
 
 issue:  set
-	cp --remove-destination BLE-Env*.bin release
+	cp BLE-Env*.bin release
 
 set:    wroom solo pico s3
 
