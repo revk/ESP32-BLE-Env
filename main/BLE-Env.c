@@ -25,7 +25,7 @@ static __attribute__((unused))
 #define PORT_INV 0x40
 #define port_mask(p) ((p)&0x3F)
 
-httpd_handle_t webserver = NULL;
+     httpd_handle_t webserver = NULL;
 
 #define	settings		\
 	u8(webcontrol,2)        \
@@ -90,7 +90,7 @@ settings
       httpd_stop (webserver);
    return NULL;
 }
- 
+
 static void
 register_uri (const httpd_uri_t * uri_struct)
 {
@@ -98,8 +98,8 @@ register_uri (const httpd_uri_t * uri_struct)
    if (res != ESP_OK)
    {
       ESP_LOGE (TAG, "Failed to register %s, error code %d", uri_struct->uri, res);
-   }                         
-}               
+   }
+}
 
 static void
 register_get_uri (const char *uri, esp_err_t (*handler) (httpd_req_t * r))
@@ -129,7 +129,7 @@ web_root (httpd_req_t * req)
       return revk_web_settings (req);   // Direct to web set up
    web_head (req, hostname == revk_id ? appname : hostname);
    // Nothing here
-      return revk_web_foot (req, 0, webcontrol >= 2 ? 1 : 0);
+   return revk_web_foot (req, 0, webcontrol >= 2 ? 1 : 0);
 }
 
 /* MAIN */
@@ -154,7 +154,7 @@ app_main ()
 
    revk_wait_mqtt (60);
 
-      if (webcontrol)
+   if (webcontrol)
    {
       // Web interface
       httpd_config_t config = HTTPD_DEFAULT_CONFIG ();
