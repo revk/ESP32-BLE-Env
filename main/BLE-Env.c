@@ -25,9 +25,10 @@ static __attribute__((unused))
 #define PORT_INV 0x40
 #define port_mask(p) ((p)&0x3F)
 
-     httpd_handle_t webserver = NULL;
+httpd_handle_t webserver = NULL;
 
 #define	settings		\
+	u8(webcontrol,2)        \
 	u32(missingtime,30)	\
 	u32(reporting,60)	\
 	u8(temprise,50)		\
@@ -89,6 +90,47 @@ settings
       httpd_stop (webserver);
    return NULL;
 }
+ 
+static void
+register_uri (const httpd_uri_t * uri_struct)
+{
+   esp_err_t res = httpd_register_uri_handler (webserver, uri_struct);
+   if (res != ESP_OK)
+   {
+      ESP_LOGE (TAG, "Failed to register %s, error code %d", uri_struct->uri, res);
+   }                         
+}               
+
+static void
+register_get_uri (const char *uri, esp_err_t (*handler) (httpd_req_t * r))
+{
+   httpd_uri_t uri_struct = {
+      .uri = uri,
+      .method = HTTP_GET,
+      .handler = handler,
+   };
+
+   register_uri (&uri_struct);
+}
+
+static void
+web_head (httpd_req_t * req, const char *title)
+{
+   revk_web_head (req, title);
+}
+
+static esp_err_t
+web_root (httpd_req_t * req)
+{
+   // webcontrol=0 means no web
+   // webcontrol=1 means user settings, not wifi settings
+   // webcontrol=2 means all
+   if (revk_link_down () && webcontrol >= 2)
+      return revk_web_settings (req);   // Direct to web set up
+   web_head (req, hostname == revk_id ? appname : hostname);
+   // Nothing here
+      return revk_web_foot (req, 0, webcontrol >= 2 ? 1 : 0);
+}
 
 /* MAIN */
 void
@@ -111,6 +153,24 @@ app_main ()
       revk_start ();
 
    revk_wait_mqtt (60);
+
+      if (webcontrol)
+   {
+      // Web interface
+      httpd_config_t config = HTTPD_DEFAULT_CONFIG ();
+      // When updating the code below, make sure this is enough
+      // Note that we're also adding revk's own web config handlers
+      config.max_uri_handlers = 2 + revk_num_web_handlers ();
+      if (!httpd_start (&webserver, &config))
+      {
+         if (webcontrol >= 2)
+            revk_web_settings_add (webserver);
+         register_get_uri ("/", web_root);
+         //register_get_uri ("/apple-touch-icon.png", web_icon);
+         // When adding, update config.max_uri_handlers
+      }
+   }
+
 
    bleenv_run ();
 
