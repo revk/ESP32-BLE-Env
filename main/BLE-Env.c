@@ -129,7 +129,7 @@ web_root (httpd_req_t * req)
       return revk_web_settings (req);   // Direct to web set up
    web_head (req, hostname == revk_id ? appname : hostname);
    // Nothing here
-   return revk_web_foot (req, 0, webcontrol >= 2 ? 1 : 0);
+   return revk_web_foot (req, 0, webcontrol >= 2 ? 1 : 0, NULL);
 }
 
 /* MAIN */
