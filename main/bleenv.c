@@ -1,4 +1,5 @@
 // ELA BlueCoin stuff
+// https://pvvx.github.io/ATC_MiThermometer/TelinkMiFlasher.html
 
 #include "revk.h"
 #ifdef CONFIG_BT_NIMBLE_ENABLED
