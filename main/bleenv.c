@@ -81,8 +81,26 @@ bleenv_gap_disc (struct ble_gap_event *event)
                volt = d + 2;
             d += 1 + (*d & 0x1F);
          }
-      }
-      if (*p >= 3 && p[1] == 0xFF)
+      } else if (*p >= 3 && p[1] == 0x16 && p[2] == 0xD2 && p[3] == 0xFC && (p[4] & 0xE0) == 0x40 && !(p[4] & 0x01))
+      {                         // Used for BT Home v2 (unencrypted)
+         // https://bthome.io/format/
+         const uint8_t *d = p + 5;
+         while (d < n)
+         {                      // first byte is type(3) and len(5) where type is 0=uint, 1=int, 2=float, 3=string, 4=AC, next byte is meaning
+            if (*d == 0x02)
+            {
+               temp = d + 1;
+               d += 3;
+            } else if (*d == 0x03)
+            {
+               hum = d + 1;
+               d += 3;
+            }
+            // TODO other types?
+            else
+               break;
+         }
+      } else if (*p >= 3 && p[1] == 0xFF)
       {                         // Custom type - with manufacturer code
          man = ((p[3] << 8) | p[2]);
          if (man == 0x757)
