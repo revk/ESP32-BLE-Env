@@ -197,15 +197,18 @@ app_main ()
             jo_t j = jo_object_alloc ();
             jo_string (j, "address", ble_addr_format (&d->addr));
             jo_string (j, "name", d->name);
-            if (d->temp < 0)
-               jo_litf (j, "temp", "-%d.%02d", (-d->temp) / 100, (-d->temp) % 100);
-            else
-               jo_litf (j, "temp", "%d.%02d", d->temp / 100, d->temp % 100);
-            if (d->bat)
+            if (d->tempset)
+            {
+               if (d->temp < 0)
+                  jo_litf (j, "temp", "-%d.%02d", (-d->temp) / 100, (-d->temp) % 100);
+               else
+                  jo_litf (j, "temp", "%d.%02d", d->temp / 100, d->temp % 100);
+            }
+            if (d->batset)
                jo_litf (j, "bat", "%d", d->bat);
-            if (d->volt)
+            if (d->voltset)
                jo_litf (j, "voltage", "%u.%03u", d->volt / 1000, d->volt % 1000);
-            if (d->hum)
+            if (d->humset)
                jo_litf (j, "rh", "%u.%02u", d->hum / 100, d->hum % 100);
             jo_int (j, "rssi", d->rssi);
             revk_info ("report", &j);
