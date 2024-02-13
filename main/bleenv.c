@@ -1,4 +1,5 @@
 // ELA BlueCoin stuff
+// https://pvvx.github.io/ATC_MiThermometer/TelinkMiFlasher.html
 
 #include "revk.h"
 #ifdef CONFIG_BT_NIMBLE_ENABLED
@@ -81,24 +82,37 @@ bleenv_gap_disc (struct ble_gap_event *event)
                volt = d + 2;
             d += 1 + (*d & 0x1F);
          }
-      } else if (*p >= 3 && p[1] == 0x16 && p[2] == 0xD2 && p[3] == 0xFC && (p[4] & 0xE0) == 0x40 && !(p[4] & 0x01))
+      } else if (*p >= 4 && p[1] == 0x16 && p[2] == 0xD2 && p[3] == 0xFC && (p[4] & 0xE0) == 0x40 && !(p[4] & 0x01))
       {                         // Used for BT Home v2 (unencrypted)
          // https://bthome.io/format/
          const uint8_t *d = p + 5;
          while (d < n)
          {                      // first byte is type(3) and len(5) where type is 0=uint, 1=int, 2=float, 3=string, 4=AC, next byte is meaning
-            if (*d == 0x02)
-            {
+            if (*d == 0 && d + 2 <= n)
+            {                   // Packet ID?
+               d += 2;
+               continue;
+            }
+            if (*d == 0x01 && d + 2 <= n)
+            {                   // Battery
+               bat = d + 1;
+               d += 2;
+               continue;
+            }
+            if (*d == 0x02 && d + 3 <= n)
+            {                   // Temper
                temp = d + 1;
                d += 3;
-            } else if (*d == 0x03)
-            {
+               continue;
+            }
+            if (*d == 0x03 && d + 3 <= n)
+            {                   // Humidity
                hum = d + 1;
                d += 3;
+               continue;
             }
             // TODO other types?
-            else
-               break;
+            break;
          }
       } else if (*p >= 3 && p[1] == 0xFF)
       {                         // Custom type - with manufacturer code
