@@ -20,32 +20,8 @@ static __attribute__((unused))
 #error	You need CONFIG_SOC_BLE_SUPPORTED
 #endif
 
-#define	MAXGPIO	36
-#define BITFIELDS "-"
-#define PORT_INV 0x40
-#define port_mask(p) ((p)&0x3F)
-
      httpd_handle_t webserver = NULL;
 
-#define	settings		\
-	u8(webcontrol,2)        \
-	u32(missingtime,30)	\
-	u32(reporting,60)	\
-	u8(temprise,50)		\
-
-#define u32(n,d)        uint32_t n;
-#define s8(n,d) int8_t n;
-#define u8(n,d) uint8_t n;
-#define b(n) uint8_t n;
-#define s(n) char * n;
-#define io(n,d)           uint8_t n;
-settings
-#undef io
-#undef u32
-#undef s8
-#undef u8
-#undef b
-#undef s
      const char *app_callback (int client, const char *prefix, const char *target, const char *suffix, jo_t j)
 {
    if (j && target && !strcmp (prefix, "info") && !strcmp (suffix, "report") && strlen (target) <= 12)
@@ -137,20 +113,7 @@ void
 app_main ()
 {
    revk_boot (&app_callback);
-#define io(n,d)           revk_register(#n,0,sizeof(n),&n,"- "#d,SETTING_SET|SETTING_BITFIELD);
-#define b(n) revk_register(#n,0,sizeof(n),&n,NULL,SETTING_BOOLEAN);
-#define u32(n,d) revk_register(#n,0,sizeof(n),&n,#d,0);
-#define s8(n,d) revk_register(#n,0,sizeof(n),&n,#d,SETTING_SIGNED);
-#define u8(n,d) revk_register(#n,0,sizeof(n),&n,#d,0);
-#define s(n) revk_register(#n,0,0,&n,NULL,0);
-   settings
-#undef io
-#undef u32
-#undef s8
-#undef u8
-#undef b
-#undef s
-      revk_start ();
+   revk_start ();
 
    revk_wait_mqtt (60);
 
