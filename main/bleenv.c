@@ -128,19 +128,19 @@ bleenv_gap_disc (struct ble_gap_event *event)
          } else if (man == 0x0001 && *p >= 5 && p[4] == 1 && p[5] == 1)
          {                      // GoveeLife
             if (*p == 9)
-            { // messy doing this here not later...
-   if (!d)
-      d = bleenv_find (&event->disc.addr, 1);
-   if(d)
-   {
-               uint32_t v = (((p[6] & 0x7F) << 16) | (p[7] << 8) | p[8]);
-               d->temp = (v / 1000) * 10 * (p[6] & 0x80 ? -1 : 1);      // C*100
-               d->tempset = 1;
-               d->hum = (v % 1000) * 10;        // Hum*100
-               d->humset = 1;
-               d->bat = p[9];
-               d->batset = 1;
-   }
+            {                   // messy doing this here not later...
+               if (!d)
+                  d = bleenv_find (&event->disc.addr, 1);
+               if (d)
+               {
+                  uint32_t v = (((p[6] & 0x7F) << 16) | (p[7] << 8) | p[8]);
+                  d->temp = (v / 1000) * 10 * (p[6] & 0x80 ? -1 : 1);   // C*100
+                  d->tempset = 1;
+                  d->hum = (v % 1000) * 10;     // Hum*100
+                  d->humset = 1;
+                  d->bat = p[9];
+                  d->batset = 1;
+               }
             }
          } else
             man = 0;            // Unknown
