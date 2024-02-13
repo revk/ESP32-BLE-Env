@@ -125,11 +125,24 @@ bleenv_gap_disc (struct ble_gap_event *event)
                volt = p + 5;
             else if (*p == 6 && p[4] == 0x12)
                temp = p + 5;
-         }
+         } else if (man == 0x0001 && *p >= 5 && p[4] == 1 && p[5] == 1)
+         {                      // GoveeLife
+            if (*p == 9)
+            {
+               uint32_t v = (((p[6] & 0x7F) << 16) | (p[7] << 8) | p[8]);
+               d->temp = (v / 1000) * 10 * (p[6] & 0x80 ? -1 : 1);      // C*100
+               d->tempset = 1;
+               d->hum = (v % 1000) * 10;        // Hum*100
+               d->humset = 1;
+               d->bat = p[9];
+               d->batset = 1;
+            }
+         } else
+            man = 0;            // Unknown
       }
       p = n;
    }
-   if (!d && !env && man != 0x0757 && !temp)
+   if (!d && !env && !man && !temp)
       return 0;
    char macname[15];
    if (!name)

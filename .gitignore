@@ -12,3 +12,5 @@ build/*
 sdkconfig
 managed_components
 dependencies.lock
+settings.c
+settings.h
