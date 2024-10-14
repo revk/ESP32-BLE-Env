@@ -25,7 +25,7 @@ struct bleenv_s
    uint16_t volt;               // Bat voltage
    uint16_t hum;                // Hum %*100
    int8_t bat;                  // Bat %
-   uint8_t updated:1;		// found/missing updated (for user to clear when they have handled)
+   uint8_t updated:1;		// found/missing/set updated (for user to clear when they have handled)
    uint8_t found:1;
    uint8_t missing:1;
    uint8_t tempset:1;           // If fields set

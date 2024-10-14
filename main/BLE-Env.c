@@ -28,14 +28,25 @@ struct
 httpd_handle_t webserver = NULL;
 
 static void
-send_ha_config (bleenv_t*d)
+send_ha_config (bleenv_t * d)
 {
-	d->changed=0;
-   //for (bleenv_t * d = bleenv; d; d = d->next) if (!d->missing) {
- ha_config_sensor ("temp", name: "Temp", type: "temperature", unit:"°C");
- ha_config_sensor ("rh", name: "R/H", type: "humidity", unit:"%");
-   //}
-   // TODO missing and found HA updates...
+   d->updated = 0;
+   char *tag;
+   asprintf (&tag, "/%s", d->name);
+   char *id,
+    *name;
+   asprintf (&id, "temp-%s", d->name);
+   asprintf (&name, "Temp %s", d->name);
+ ha_config_sensor (id, name: name, stat: tag, field: "temp", type: "temperature", unit: "°C", delete:!ha || !d->tempset ||
+                     d->missing);
+   free (id);
+   free (name);
+   asprintf (&id, "humidity-%s", d->name);
+   asprintf (&name, "R/H %s", d->name);
+ ha_config_sensor (id, name: name, stat: tag, field: "rh", type: "humidity", unit: "%", delete:!ha || !d->humset || d->missing);
+   free (id);
+   free (name);
+   free (tag);
 }
 
 const char *
@@ -161,14 +172,15 @@ app_main ()
       usleep (100000);
       if (b.ha_send)
       {
-	      b.ha_send=0;
-   for (bleenv_t * d = bleenv; d; d = d->next) 
-         send_ha_config (d);
+         b.ha_send = 0;
+         for (bleenv_t * d = bleenv; d; d = d->next)
+            send_ha_config (d);
       }
       uint32_t now = uptime ();
       bleenv_expire (missingtime);
-   for (bleenv_t * d = bleenv; d; d = d->next) if(d->changed)
-         send_ha_config (d);
+      for (bleenv_t * d = bleenv; d; d = d->next)
+         if (d->updated)
+            send_ha_config (d);
       for (bleenv_t * d = bleenv; d; d = d->next)
          if (*d->better && d->lastbetter + reporting * 3 / 2 < now)
             *d->better = 0;     // Not seeing better
@@ -184,24 +196,34 @@ app_main ()
                continue;
             }
             jo_t j = jo_object_alloc ();
+            void f (void)
+            {
+               if (d->tempset)
+               {
+                  if (d->temp < 0)
+                     jo_litf (j, "temp", "-%d.%02d", (-d->temp) / 100, (-d->temp) % 100);
+                  else
+                     jo_litf (j, "temp", "%d.%02d", d->temp / 100, d->temp % 100);
+               }
+               if (d->batset)
+                  jo_litf (j, "bat", "%d", d->bat);
+               if (d->voltset)
+                  jo_litf (j, "voltage", "%u.%03u", d->volt / 1000, d->volt % 1000);
+               if (d->humset)
+                  jo_litf (j, "rh", "%u.%02u", d->hum / 100, d->hum % 100);
+            }
             jo_string (j, "address", ble_addr_format (&d->addr));
             jo_string (j, "name", d->name);
-            if (d->tempset)
-            {
-               if (d->temp < 0)
-                  jo_litf (j, "temp", "-%d.%02d", (-d->temp) / 100, (-d->temp) % 100);
-               else
-                  jo_litf (j, "temp", "%d.%02d", d->temp / 100, d->temp % 100);
-            }
-            if (d->batset)
-               jo_litf (j, "bat", "%d", d->bat);
-            if (d->voltset)
-               jo_litf (j, "voltage", "%u.%03u", d->volt / 1000, d->volt % 1000);
-            if (d->humset)
-               jo_litf (j, "rh", "%u.%02u", d->hum / 100, d->hum % 100);
+            f ();
             jo_int (j, "rssi", d->rssi);
             revk_info ("report", &j);
             ESP_LOGI (TAG, "Report %s \"%s\" %d (%s %d)", ble_addr_format (&d->addr), d->name, d->rssi, d->better, d->betterrssi);
+            if (ha)
+            {
+               j = jo_object_alloc ();
+               f ();
+               revk_state (d->name, &j);
+            }
          }
       bleenv_clean ();
    }

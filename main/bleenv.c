@@ -27,6 +27,7 @@ bleenv_find (ble_addr_t * a, int make)
       d->addr = *a;
       d->next = bleenv;
       d->missing = 1;
+      d->updated = 1;
       bleenv = d;
    }
    d->last = uptime ();
@@ -166,19 +167,31 @@ bleenv_gap_disc (struct ble_gap_event *event)
    if (temp)
    {
       d->temp = ((temp[1] << 8) | temp[0]);     // C*100
-      d->tempset = 1;
+      if (!d->tempset)
+      {
+         d->tempset = 1;
+         d->updated = 1;
+      }
    }
    if (bat)
    {
       d->bat = *bat;            // percent
-      d->batset = 1;
+      if (!d->batset)
+      {
+         d->batset = 1;
+         d->updated = 1;
+      }
    }
    if (volt)
       d->volt = ((volt[1] << 8) + volt[0]);     // mV
    if (hum)
    {
       d->hum = ((hum[1] << 8) + hum[0]);        // Hum*100
-      d->humset = 1;
+      if (!d->humset)
+      {
+         d->humset = 1;
+         d->updated = 1;
+      }
    }
    if (env)
    {
@@ -192,7 +205,11 @@ bleenv_gap_disc (struct ble_gap_event *event)
          d->volt = ((env[15] << 8) | env[14]);  // mV
          d->voltset = 1;
          d->bat = env[16];      // %
-         d->batset = 1;
+         if (!d->batset)
+         {
+            d->batset = 1;
+            d->updated = 1;
+         }
          // counter
          // flags
          //ESP_LOGE (TAG, "Temp=%d hum=%d volt=%d bat=%d", d->temp, d->hum, d->volt, d->bat);
@@ -204,6 +221,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
       d->lastreport = 0;
       d->missing = 0;
       d->found = 1;
+      d->updated = 1;
    }
    ESP_LOGD (TAG, "Temp \"%s\" T%d B%d V%d R%d", d->name, d->temp, d->bat, d->volt, d->rssi);
    return 0;
@@ -218,7 +236,6 @@ bleenv_expire (uint32_t missingtime)
       if (!d->missing && d->last + missingtime < now)
       {                         // Missing
          d->missing = 1;
-         d->updated = 1;
          ESP_LOGI (TAG, "Missing %s %s", ble_addr_format (&d->addr), d->name);
       }
    // Devices found
@@ -226,7 +243,6 @@ bleenv_expire (uint32_t missingtime)
       if (d->found)
       {
          d->found = 0;
-         d->updated = 1;
          ESP_LOGI (TAG, "Found %s %s", ble_addr_format (&d->addr), d->name);
       }
 }

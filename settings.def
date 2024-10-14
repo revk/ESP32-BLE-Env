@@ -2,3 +2,4 @@ u8	webcontrol	2
 u32	missingtime	30
 u32	reporting	60
 u8	temprise	50
+bit	ha		1		// Home Assistant
