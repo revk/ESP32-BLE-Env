@@ -1,8 +1,7 @@
 /* BlueCoinT app */
 /* Copyright ©2022 - 2023 Adrian Kennard, Andrews & Arnold Ltd.See LICENCE file for details .GPL 3.0 */
 
-static __attribute__((unused))
-     const char TAG[] = "BLE-Env";
+static const char TAG[] = "BLE-Env";
 
 #include "revk.h"
 #include "esp_sleep.h"
@@ -15,14 +14,32 @@ static __attribute__((unused))
 #include "console/console.h"
 #include <driver/gpio.h>
 #include "bleenv.h"
+#include <halib.h>
 
 #ifndef	CONFIG_SOC_BLE_SUPPORTED
 #error	You need CONFIG_SOC_BLE_SUPPORTED
 #endif
 
-     httpd_handle_t webserver = NULL;
+struct
+{
+   uint8_t ha_send:1;           // Send HA
+} b = { 0 };
 
-     const char *app_callback (int client, const char *prefix, const char *target, const char *suffix, jo_t j)
+httpd_handle_t webserver = NULL;
+
+static void
+send_ha_config (void)
+{
+   b.ha_send = 0;
+   //for (bleenv_t * d = bleenv; d; d = d->next) if (!d->missing) {
+ ha_config_sensor ("temp", name: "Temp", type: "temperature", unit:"°C");
+ ha_config_sensor ("rh", name: "R/H", type: "humidity", unit:"%");
+   //}
+   // TODO missing and found HA updates...
+}
+
+const char *
+app_callback (int client, const char *prefix, const char *target, const char *suffix, jo_t j)
 {
    if (j && target && !strcmp (prefix, "info") && !strcmp (suffix, "report") && strlen (target) <= 12)
    {                            // Other reports
@@ -61,6 +78,7 @@ static __attribute__((unused))
    if (!strcmp (suffix, "connect"))
    {
       lwmqtt_subscribe (revk_mqtt (0), "info/BLE-Env/#");
+      b.ha_send = 1;
    }
    if (!strcmp (suffix, "shutdown"))
       httpd_stop (webserver);
@@ -141,6 +159,8 @@ app_main ()
    while (1)
    {
       usleep (100000);
+      if (b.ha_send)
+         send_ha_config ();
       uint32_t now = uptime ();
       bleenv_expire (missingtime);
       for (bleenv_t * d = bleenv; d; d = d->next)
@@ -177,7 +197,6 @@ app_main ()
             revk_info ("report", &j);
             ESP_LOGI (TAG, "Report %s \"%s\" %d (%s %d)", ble_addr_format (&d->addr), d->name, d->rssi, d->better, d->betterrssi);
          }
-
       bleenv_clean ();
    }
    return;
