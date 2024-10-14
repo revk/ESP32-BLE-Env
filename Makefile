@@ -5,12 +5,30 @@
 
 PROJECT_NAME := BLE-Env
 SUFFIX := $(shell components/ESP32-RevK/buildsuffix)
-
-all:	settings.h
+all:    settings.h
 	@echo Make: $(PROJECT_NAME)$(SUFFIX).bin
 	@idf.py build
 	@cp build/$(PROJECT_NAME).bin $(PROJECT_NAME)$(SUFFIX).bin
 	@echo Done: $(PROJECT_NAME)$(SUFFIX).bin
+
+beta:   
+	-git pull
+	-git submodule update --recursive
+	-git commit -a
+	@make set
+	cp $(PROJECT_NAME)*.bin betarelease
+	git commit -a -m Beta
+	git push
+
+issue:
+	-git pull
+	-git submodule update --recursive
+	-git commit -a
+	@make set
+	cp $(PROJECT_NAME)*.bin betarelease
+	cp $(PROJECT_NAME)*.bin release
+	git commit -a -m Release
+	git push
 
 settings.h:     components/ESP32-RevK/revk_settings settings.def components/ESP32-RevK/settings.def
 	components/ESP32-RevK/revk_settings $^
@@ -56,5 +74,8 @@ pull:
 	git submodule update --recursive
 
 update:
+	-git pull
+	-git commit -a
 	git submodule update --init --recursive --remote
-	git commit -a -m "Library update"
+	-git commit -a -m "Library update"
+	-git push
