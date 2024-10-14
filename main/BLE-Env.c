@@ -28,9 +28,9 @@ struct
 httpd_handle_t webserver = NULL;
 
 static void
-send_ha_config (void)
+send_ha_config (bleenv_t*d)
 {
-   b.ha_send = 0;
+	d->changed=0;
    //for (bleenv_t * d = bleenv; d; d = d->next) if (!d->missing) {
  ha_config_sensor ("temp", name: "Temp", type: "temperature", unit:"°C");
  ha_config_sensor ("rh", name: "R/H", type: "humidity", unit:"%");
@@ -160,9 +160,15 @@ app_main ()
    {
       usleep (100000);
       if (b.ha_send)
-         send_ha_config ();
+      {
+	      b.ha_send=0;
+   for (bleenv_t * d = bleenv; d; d = d->next) 
+         send_ha_config (d);
+      }
       uint32_t now = uptime ();
       bleenv_expire (missingtime);
+   for (bleenv_t * d = bleenv; d; d = d->next) if(d->changed)
+         send_ha_config (d);
       for (bleenv_t * d = bleenv; d; d = d->next)
          if (*d->better && d->lastbetter + reporting * 3 / 2 < now)
             *d->better = 0;     // Not seeing better

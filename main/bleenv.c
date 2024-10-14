@@ -218,6 +218,7 @@ bleenv_expire (uint32_t missingtime)
       if (!d->missing && d->last + missingtime < now)
       {                         // Missing
          d->missing = 1;
+         d->updated = 1;
          ESP_LOGI (TAG, "Missing %s %s", ble_addr_format (&d->addr), d->name);
       }
    // Devices found
@@ -225,6 +226,7 @@ bleenv_expire (uint32_t missingtime)
       if (d->found)
       {
          d->found = 0;
+         d->updated = 1;
          ESP_LOGI (TAG, "Found %s %s", ble_addr_format (&d->addr), d->name);
       }
 }
