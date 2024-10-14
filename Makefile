@@ -36,9 +36,6 @@ settings.h:     components/ESP32-RevK/revk_settings settings.def components/ESP3
 components/ESP32-RevK/revk_settings: components/ESP32-RevK/revk_settings.c
 	make -C components/ESP32-RevK revk_settings
 
-issue:  set
-	cp BLE-Env*.bin release
-
 set:    wroom solo pico s3
 
 s3:
