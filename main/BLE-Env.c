@@ -38,7 +38,8 @@ send_ha_config (bleenv_t * d)
    asprintf (&id, "temp-%s", d->name);
    asprintf (&name, "Temp %s", d->name);
  ha_config_sensor (id, name: name, stat: tag, field: "temp", type: "temperature", unit: "°C", delete:!ha || !d->tempset ||
-                     d->missing);
+                     d->
+                     missing);
    free (id);
    free (name);
    asprintf (&id, "humidity-%s", d->name);
@@ -183,6 +184,17 @@ web_info (httpd_req_t * req)
                httpd_resp_sendstr_chunk (req, i);
             free (i);
          }
+   } else
+   {
+      jo_t j = jo_create_alloc ();
+      jo_array (j, NULL);
+      for (bleenv_t * d = bleenv; d; d = d->next)
+         if (!d->missing)
+            jo_string (j, NULL, d->name);
+      char *i = jo_finisha (&j);
+      if (i)
+         httpd_resp_sendstr_chunk (req, i);
+      free (i);
    }
    httpd_resp_sendstr_chunk (req, NULL);
    return ESP_OK;
