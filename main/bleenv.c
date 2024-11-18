@@ -159,10 +159,25 @@ bleenv_gap_disc (struct ble_gap_event *event)
    }
    if (!d)
       d = bleenv_find (&event->disc.addr, 1);
-   if (d->namelen != *name - 1 || memcmp (d->name, name + 2, d->namelen))
+   int diff (const char * a, const uint8_t * b, int len)
+   {
+      while (len > 0)
+      {
+         if (!(*a == *b || (*a == '_' && *b <= ' ')))
+            return *a > *b ? 1 : -1;
+         a++;
+         b++;
+         len--;
+      }
+      return 0;
+   }
+   if (d->namelen != *name - 1 || diff (d->name, name + 2, d->namelen))
    {                            // Update name
       memcpy (d->name, name + 2, d->namelen = *name - 1);
       d->name[d->namelen] = 0;
+      for (int p = 0; p < d->namelen; p++)
+         if (d->name[p] <= ' ')
+            d->name[p] = '_';
    }
    if (temp)
    {
