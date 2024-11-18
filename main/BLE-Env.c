@@ -96,6 +96,34 @@ app_callback (int client, const char *prefix, const char *target, const char *su
    return NULL;
 }
 
+jo_t
+jinfo (bleenv_t * d)
+{
+   jo_t j = jo_object_alloc ();
+   void f (void)
+   {
+      if (d->tempset)
+      {
+         if (d->temp < 0)
+            jo_litf (j, "temp", "-%d.%02d", (-d->temp) / 100, (-d->temp) % 100);
+         else
+            jo_litf (j, "temp", "%d.%02d", d->temp / 100, d->temp % 100);
+      }
+      if (d->batset)
+         jo_litf (j, "bat", "%d", d->bat);
+      if (d->voltset)
+         jo_litf (j, "voltage", "%u.%03u", d->volt / 1000, d->volt % 1000);
+      if (d->humset)
+         jo_litf (j, "rh", "%u.%02u", d->hum / 100, d->hum % 100);
+   }
+   jo_string (j, "address", ble_addr_format (&d->addr));
+   jo_string (j, "name", d->name);
+   f ();
+   jo_int (j, "rssi", d->rssi);
+   return j;
+}
+
+
 static void
 register_uri (const httpd_uri_t * uri_struct)
 {
@@ -137,6 +165,29 @@ web_root (httpd_req_t * req)
    return revk_web_foot (req, 0, webcontrol >= 2 ? 1 : 0, NULL);
 }
 
+static esp_err_t
+web_info (httpd_req_t * req)
+{
+   httpd_resp_set_type (req, "application/json;charset=utf-8");
+   size_t len = httpd_req_get_url_query_len (req);
+   if (len > 0 && len < sizeof (bleenv->name) - 1)
+   {
+      char name[sizeof (bleenv->name)];
+      httpd_req_get_url_query_str (req, name, sizeof (name));
+      for (bleenv_t * d = bleenv; d; d = d->next)
+         if (!d->missing && !strcmp (d->name, name))
+         {
+            jo_t j = jinfo (d);
+            char *i = jo_finisha (&j);
+            if (i)
+               httpd_resp_sendstr_chunk (req, i);
+            free (i);
+         }
+   }
+   httpd_resp_sendstr_chunk (req, NULL);
+   return ESP_OK;
+}
+
 /* MAIN */
 void
 app_main ()
@@ -152,12 +203,13 @@ app_main ()
       httpd_config_t config = HTTPD_DEFAULT_CONFIG ();
       // When updating the code below, make sure this is enough
       // Note that we're also adding revk's own web config handlers
-      config.max_uri_handlers = 2 + revk_num_web_handlers ();
+      config.max_uri_handlers = 3 + revk_num_web_handlers ();
       if (!httpd_start (&webserver, &config))
       {
          if (webcontrol >= 2)
             revk_web_settings_add (webserver);
          register_get_uri ("/", web_root);
+         register_get_uri ("/info", web_info);
          //register_get_uri ("/apple-touch-icon.png", web_icon);
          // When adding, update config.max_uri_handlers
       }
@@ -195,33 +247,12 @@ app_main ()
                ESP_LOGI (TAG, "Not reporting \"%s\" %d as better %s %d", d->name, d->rssi, d->better, d->betterrssi);
                continue;
             }
-            jo_t j = jo_object_alloc ();
-            void f (void)
-            {
-               if (d->tempset)
-               {
-                  if (d->temp < 0)
-                     jo_litf (j, "temp", "-%d.%02d", (-d->temp) / 100, (-d->temp) % 100);
-                  else
-                     jo_litf (j, "temp", "%d.%02d", d->temp / 100, d->temp % 100);
-               }
-               if (d->batset)
-                  jo_litf (j, "bat", "%d", d->bat);
-               if (d->voltset)
-                  jo_litf (j, "voltage", "%u.%03u", d->volt / 1000, d->volt % 1000);
-               if (d->humset)
-                  jo_litf (j, "rh", "%u.%02u", d->hum / 100, d->hum % 100);
-            }
-            jo_string (j, "address", ble_addr_format (&d->addr));
-            jo_string (j, "name", d->name);
-            f ();
-            jo_int (j, "rssi", d->rssi);
+            jo_t j = jinfo (d);
             revk_info ("report", &j);
             ESP_LOGI (TAG, "Report %s \"%s\" %d (%s %d)", ble_addr_format (&d->addr), d->name, d->rssi, d->better, d->betterrssi);
             if (ha)
             {
-               j = jo_object_alloc ();
-               f ();
+               j = jinfo (d);
                revk_state (d->name, &j);
             }
          }
