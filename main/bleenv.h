@@ -22,7 +22,7 @@ struct bleenv_s
    uint32_t lastreport;         // uptime of last reported
    int16_t temp;                // Temp *100
    int16_t tempreport;          // Temp last reported
-   uint16_t volt;               // Bat voltage
+   uint16_t volt;               // Bat voltage mV
    uint16_t hum;                // Hum %*100
    int8_t bat;                  // Bat %
    uint8_t updated:1;		// found/missing/set updated (for user to clear when they have handled)
