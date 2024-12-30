@@ -204,6 +204,7 @@ web_info (httpd_req_t * req)
 void
 app_main ()
 {
+	ESP_LOGE(TAG,"Started");
    revk_boot (&app_callback);
    revk_start ();
 
