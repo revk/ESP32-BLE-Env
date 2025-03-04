@@ -5,7 +5,7 @@
 
 PROJECT_NAME := BLE-Env
 SUFFIX := $(shell components/ESP32-RevK/buildsuffix)
-all:    settings.h
+all:    main/settings.h
 	@echo Make: $(PROJECT_NAME)$(SUFFIX).bin
 	@idf.py build
 	@cp build/$(PROJECT_NAME).bin $(PROJECT_NAME)$(SUFFIX).bin
@@ -30,7 +30,7 @@ issue:
 	git commit -a -m Release
 	git push
 
-settings.h:     components/ESP32-RevK/revk_settings settings.def components/ESP32-RevK/settings.def
+main/settings.h:     components/ESP32-RevK/revk_settings main/settings.def components/ESP32-RevK/settings.def
 	components/ESP32-RevK/revk_settings $^
 
 components/ESP32-RevK/revk_settings: components/ESP32-RevK/revk_settings.c
