@@ -45,10 +45,14 @@ bleenv_gap_disc (struct ble_gap_event *event)
    //if (d) ESP_LOG_BUFFER_HEX(event->disc.event_type == BLE_HCI_ADV_RPT_EVTYPE_SCAN_RSP ? "Rsp" : "Adv", event->disc.data, event->disc.length_data);
    // Check if a temp device
    const uint8_t *name = NULL;
-   const uint8_t *temp = NULL;
+   const uint8_t *temp_2_100 = NULL;    // Temp as two bytes * 0.01
+   const uint8_t *temp_2_10 = NULL;     // Temp as two bytes * 0.1
+   const uint8_t *temp_1 = NULL;        // Temp as one byte
+   const uint8_t *temp_1_35 = NULL;     // Temp as one byte, *0.35
    const uint8_t *bat = NULL;
    const uint8_t *volt = NULL;
-   const uint8_t *hum = NULL;
+   const uint8_t *hum_2_100 = NULL;     // Humidity * 0.01
+   const uint8_t *hum_2_10 = NULL;      // Humidity * 0.1
    const uint8_t *env = NULL;
    uint16_t man = 0;
    while (p < e)
@@ -61,7 +65,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
       if (p[0] > 1 && (p[1] == 8 || p[1] == 9))
          name = p;
       else if (*p == 5 && p[1] == 0x16 && p[2] == 0x6E && p[3] == 0x2A)
-         temp = p + 4;          // Temp UUID 2A6E
+         temp_2_100 = p + 4;    // Temp UUID 2A6E
       else if (*p == 4 && p[1] == 0x16 && p[2] == 0x0F && p[3] == 0x18)
          bat = p + 4;           // Bat UUID 180F
       else if (*p == 4 && p[1] == 0x16 && p[2] == 0x19 && p[3] == 0x2A)
@@ -76,9 +80,9 @@ bleenv_gap_disc (struct ble_gap_event *event)
             if (*d == 0x02 && d[1] == 0x01)
                bat = d + 2;
             else if (*d == 0x23 && d[1] == 0x02)
-               temp = d + 2;
+               temp_2_100 = d + 2;
             else if (*d == 0x03 && d[1] == 0x03)
-               hum = d + 2;
+               hum_2_100 = d + 2;
             else if (*d == 0x03 && d[1] == 0x0C)
                volt = d + 2;
             d += 1 + (*d & 0x1F);
@@ -101,18 +105,41 @@ bleenv_gap_disc (struct ble_gap_event *event)
                continue;
             }
             if (*d == 0x02 && d + 3 <= n)
-            {                   // Temper
-               temp = d + 1;
+            {                   // Temperature
+               temp_2_100 = d + 1;
                d += 3;
                continue;
             }
             if (*d == 0x03 && d + 3 <= n)
             {                   // Humidity
-               hum = d + 1;
+               hum_2_100 = d + 1;
                d += 3;
                continue;
             }
-            // TODO other types?
+            if (*d == 0x2E && d + 2 <= n)
+            {                   // Humidity
+               hum_2_10 = d + 1;
+               d += 2;
+               continue;
+            }
+            if (*d == 0x57 && d + 2 <= n)
+            {                   // Temperature
+               temp_1 = d + 1;
+               d += 2;
+               continue;
+            }
+            if (*d == 0x58 && d + 2 <= n)
+            {                   // Temperature
+               temp_1_35 = d + 1;
+               d += 2;
+               continue;
+            }
+            if (*d == 0x45 && d + 3 <= n)
+            {                   // Temperature
+               temp_2_10 = d + 1;
+               d += 3;
+               continue;
+            }
             break;
          }
       } else if (*p >= 3 && p[1] == 0xFF)
@@ -125,7 +152,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
             else if (*p == 6 && p[4] == 0xF2)
                volt = p + 5;
             else if (*p == 6 && p[4] == 0x12)
-               temp = p + 5;
+               temp_2_100 = p + 5;
          } else if (man == 0x0001 && *p >= 5 && p[4] == 1 && p[5] == 1)
          {                      // GoveeLife
             if (*p == 9)
@@ -148,8 +175,8 @@ bleenv_gap_disc (struct ble_gap_event *event)
       }
       p = n;
    }
-   if (!d && !env && !man && !temp)
-      return 0;
+   if (!d && !env && !man && !temp_2_100 && !temp_2_10 && !temp_1 && !temp_1_35)
+      return 0;                 // No temp
    char macname[15];
    if (!name)
    {                            // Make a name from MAC
@@ -159,7 +186,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
    }
    if (!d)
       d = bleenv_find (&event->disc.addr, 1);
-   int diff (const char * a, const uint8_t * b, int len)
+   int diff (const char *a, const uint8_t * b, int len)
    {
       while (len > 0)
       {
@@ -179,14 +206,18 @@ bleenv_gap_disc (struct ble_gap_event *event)
          if (d->name[p] <= ' ')
             d->name[p] = '_';
    }
-   if (temp)
+   if (temp_2_100)
+      d->temp = ((temp_2_100[1] << 8) | temp_2_100[0]); // C*100
+   if (temp_2_10)
+      d->temp = ((int16_t) ((temp_2_10[1] << 8) | temp_2_10[0])) * 10;  // C*100
+   if (temp_1)
+      d->temp = ((int8_t) temp_1[0]) * 100;
+   if (temp_1_35)
+      d->temp = ((int8_t) temp_1_35[0]) * 35;
+   if ((temp_2_100 || temp_2_10 || temp_1 || temp_1_35) && !d->tempset)
    {
-      d->temp = ((temp[1] << 8) | temp[0]);     // C*100
-      if (!d->tempset)
-      {
-         d->tempset = 1;
-         d->updated = 1;
-      }
+      d->tempset = 1;
+      d->updated = 1;
    }
    if (bat)
    {
@@ -199,14 +230,14 @@ bleenv_gap_disc (struct ble_gap_event *event)
    }
    if (volt)
       d->volt = ((volt[1] << 8) + volt[0]);     // mV
-   if (hum)
+   if (hum_2_100)
+      d->hum = ((hum_100[1] << 8) + hum_100[0]);        // Hum*100
+   if (hum_2_10)
+      d->hum = ((int16_t) ((hum_100[1] << 8) + hum_100[0])) * 10;       // Hum*100
+   if ((hum_2_100 || hum_2_10) && !d->humset)
    {
-      d->hum = ((hum[1] << 8) + hum[0]);        // Hum*100
-      if (!d->humset)
-      {
-         d->humset = 1;
-         d->updated = 1;
-      }
+      d->humset = 1;
+      d->updated = 1;
    }
    if (env)
    {
