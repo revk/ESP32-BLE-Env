@@ -232,9 +232,9 @@ bleenv_gap_disc (struct ble_gap_event *event)
       d->volt = ((volt[1] << 8) + volt[0]);     // mV
    if (hum_2_100)
       d->hum = ((hum_2_100[1] << 8) + hum_2_100[0]);    // Hum*100
-   if (hum_2_10)
-      d->hum = 10 * hum_2_10[0];        // Hum*100
-   if ((hum_2_100 || hum_2_10) && !d->humset)
+   if (hum_1_10)
+      d->hum = 10 * hum_1_10[0];        // Hum*100
+   if ((hum_2_100 || hum_1_10) && !d->humset)
    {
       d->humset = 1;
       d->updated = 1;
