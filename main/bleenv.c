@@ -52,7 +52,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
    const uint8_t *bat = NULL;
    const uint8_t *volt = NULL;
    const uint8_t *hum_2_100 = NULL;     // Humidity * 0.01
-   const uint8_t *hum_2_10 = NULL;      // Humidity * 0.1
+   const uint8_t *hum_1_10 = NULL;      // Humidity * 0.1
    const uint8_t *env = NULL;
    uint16_t man = 0;
    while (p < e)
@@ -118,7 +118,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
             }
             if (*d == 0x2E && d + 2 <= n)
             {                   // Humidity
-               hum_2_10 = d + 1;
+               hum_1_10 = d + 1;
                d += 2;
                continue;
             }
@@ -209,11 +209,11 @@ bleenv_gap_disc (struct ble_gap_event *event)
    if (temp_2_100)
       d->temp = ((temp_2_100[1] << 8) | temp_2_100[0]); // C*100
    if (temp_2_10)
-      d->temp = ((int16_t) ((temp_2_10[1] << 8) | temp_2_10[0])) * 10;  // C*100
+      d->temp = 10 * ((int16_t) ((temp_2_10[1] << 8) | temp_2_10[0]));  // C*100
    if (temp_1)
-      d->temp = ((int8_t) temp_1[0]) * 100;
+      d->temp = 100 * ((int8_t) temp_1[0]);
    if (temp_1_35)
-      d->temp = ((int8_t) temp_1_35[0]) * 35;
+      d->temp = 35 * ((int8_t) temp_1_35[0]);
    if ((temp_2_100 || temp_2_10 || temp_1 || temp_1_35) && !d->tempset)
    {
       d->tempset = 1;
@@ -231,9 +231,9 @@ bleenv_gap_disc (struct ble_gap_event *event)
    if (volt)
       d->volt = ((volt[1] << 8) + volt[0]);     // mV
    if (hum_2_100)
-      d->hum = ((hum_2_100[1] << 8) + hum_2_100[0]);        // Hum*100
+      d->hum = ((hum_2_100[1] << 8) + hum_2_100[0]);    // Hum*100
    if (hum_2_10)
-      d->hum = ((int16_t) ((hum_2_10[1] << 8) + hum_2_10[0])) * 10;       // Hum*100
+      d->hum = 10 * hum_2_10[0];        // Hum*100
    if ((hum_2_100 || hum_2_10) && !d->humset)
    {
       d->humset = 1;
