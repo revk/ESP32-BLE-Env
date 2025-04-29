@@ -417,7 +417,6 @@ bleenv_run (void)
 static void
 ble_adv (const char *name, uint8_t * data, uint8_t len)
 {
-   ble_gap_adv_set_data (data, len);
    uint8_t rsp[37],
      p = 0;
    void add (uint8_t d)
@@ -428,12 +427,40 @@ ble_adv (const char *name, uint8_t * data, uint8_t len)
    }
    if (name && *name)
    {
-      add (strlen (name) + 1);
-      add (9);
-      while (*name)
-         add (*name++);
+      if (len < sizeof (rsp) - 8)
+      {
+         const char *p = name;
+         int l = strlen (name);
+         if (l + 2 + len < sizeof (rsp))
+         {
+            add (l + 1);
+            add (9);
+         } else
+         {
+            l = sizeof (rsp) - len - 2;
+            add (l + 1);
+            add (8);
+         }
+         while (l--)
+            add (*p++);
+      }
+      int l = strlen (name);
+      const char *p = name;
+      if (l + 2 < sizeof (rsp))
+      {
+         add (l + 1);
+         add (9);
+      } else
+      {
+         l = sizeof (rsp) - 2;
+         add (l + 1);
+         add (8);
+      }
+      while (l--)
+         add (*p++);
    }
-   if (p < sizeof (rsp))
+   ble_gap_adv_set_data (data, len);
+   if (p && p < sizeof (rsp))
       ble_gap_adv_rsp_set_data (rsp, p);
    if (!ble_gap_adv_active ())
    {
@@ -449,7 +476,6 @@ ble_adv (const char *name, uint8_t * data, uint8_t len)
 void
 bleenv_bthome1 (const char *name, float c, float rh, uint16_t co2)
 {                               // Set up / update advertising BTHome1 format
-   ESP_LOGE ("BLE", "BTHome1 %.1fC %.1f%% %uppm", c, rh, co2);
    uint8_t data[37],
      p = 0;
    uint8_t add (uint8_t d)
@@ -485,7 +511,6 @@ bleenv_bthome1 (const char *name, float c, float rh, uint16_t co2)
    data[len] = p + 1 - len;
    if (p < sizeof (data))
       ble_adv (name, data, p);
-   ESP_LOGE ("BLE", "Done");
 }
 
 void
