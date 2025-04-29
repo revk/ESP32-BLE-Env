@@ -41,5 +41,9 @@ int bleenv_gap_disc (struct ble_gap_event *event);      // Handle GAP disc event
 void bleenv_expire (uint32_t missingtime);      // Expire (i.e. missing)
 void bleenv_clean (void);       // Delete old entries
 
+void bleenv_bthome1(const char *name,float c,float rh,uint16_t co2);
+void bleenv_bthome2(const char *name,float c,float rh,uint16_t co2);
+void bleenv_faikin(const char *name,float c,float targetlow,float targethigh,uint8_t power,uint8_t rad,uint8_t mode,uint8_t fan);
+
 void bleenv_run (void);         // Run BLE for ELA
 #endif

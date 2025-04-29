@@ -4,6 +4,7 @@
 #include "revk.h"
 #ifdef CONFIG_BT_NIMBLE_ENABLED
 #include "bleenv.h"
+#include "math.h"
 
 static const char TAG[] = "bleenv";
 
@@ -52,7 +53,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
    const uint8_t *bat = NULL;
    const uint8_t *volt = NULL;
    const uint8_t *hum_2_100 = NULL;     // Humidity * 0.01
-   const uint8_t *hum_1 = NULL;      // Humidity * 1
+   const uint8_t *hum_1 = NULL; // Humidity * 1
    const uint8_t *env = NULL;
    uint16_t man = 0;
    while (p < e)
@@ -233,7 +234,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
    if (hum_2_100)
       d->hum = ((hum_2_100[1] << 8) + hum_2_100[0]);    // Hum*100
    if (hum_1)
-      d->hum = 100 * hum_1[0];        // Hum*100
+      d->hum = 100 * hum_1[0];  // Hum*100
    if ((hum_2_100 || hum_1) && !d->humset)
    {
       d->humset = 1;
@@ -412,4 +413,91 @@ bleenv_run (void)
    nimble_port_freertos_init (ble_task);
    ESP_LOGI (TAG, "Starting ELA monitoring");
 }
+
+static void
+ble_adv (const char *name, uint8_t * data, uint8_t len)
+{
+   ble_gap_adv_set_data (data, len);
+   uint8_t rsp[37],
+     p = 0;
+   void add (uint8_t d)
+   {
+      if (p < sizeof (rsp))
+         rsp[p] = d;
+      p++;
+   }
+   if (name && *name)
+   {
+      add (strlen (name) + 1);
+      add (9);
+      while (*name)
+         add (*name++);
+   }
+   if (p < sizeof (rsp))
+      ble_gap_adv_rsp_set_data (rsp, p);
+   if (!ble_gap_adv_active ())
+   {
+      struct ble_gap_adv_params adv_params = { 0 };
+      adv_params.conn_mode = BLE_GAP_CONN_MODE_NON;
+      adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
+      int e = ble_gap_adv_start (BLE_OWN_ADDR_PUBLIC, NULL, BLE_HS_FOREVER, &adv_params, NULL, NULL);
+      if (e)
+         ESP_LOGE ("BLE", "Adv %d", e);
+   }
+}
+
+void
+bleenv_bthome1 (const char *name, float c, float rh, uint16_t co2)
+{                               // Set up / update advertising BTHome1 format
+   ESP_LOGE ("BLE", "BTHome1 %.1fC %.1f%% %uppm", c, rh, co2);
+   uint8_t data[37],
+     p = 0;
+   uint8_t add (uint8_t d)
+   {
+      if (p < sizeof (data))
+         data[p] = d;
+      return p++;
+   }
+   uint8_t len = add (0);
+   add (0x16);                  // BTHome1
+   add (0x1C);
+   add (0x18);
+   if (!isnan (c))
+   {
+      int16_t C = c * 100;
+      add (0x23);               // temp, C*100
+      add (2);
+      add (C >> 8);
+      add (C & 0xFF);
+   }
+   if (rh)
+   {
+      uint16_t H = rh * 100;
+      add (0x03);               // humidity, RH*100
+      add (3);
+      add (H >> 8);
+      add (H & 0xFF);
+   }
+   if (co2)
+   {
+      // TODO CO2
+   }
+   data[len] = p + 1 - len;
+   if (p < sizeof (data))
+      ble_adv (name, data, p);
+   ESP_LOGE ("BLE", "Done");
+}
+
+void
+bleenv_bthome2 (const char *name, float c, float rh, uint16_t co2)
+{                               // Set up / update advertising BTHome2 format
+   // TODO
+}
+
+void
+bleenv_faikin (const char *name, float c, float targetlow, float targethigh, uint8_t power, uint8_t rad, uint8_t mode, uint8_t fan)
+{                               // Set up / update advertising Faikin format
+   // TODO
+}
+
 #endif
