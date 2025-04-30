@@ -172,16 +172,24 @@ bleenv_gap_disc (struct ble_gap_event *event)
                   d->batset = 1;
                }
             }
-         } else if (man == 0xE9C && *p == 9 && p[4] == 'F')
-         {                      // A&A / Faikin
-            d->temp = ((p[5] << 8) + p[6]) - 4000;
-            d->power = ((p[7] & 0x80) ? 1 : 0);
-            d->rad = ((p[7] & 0x40) ? 1 : 0);
-            d->mode = ((p[7] >> 3) & 7);
-            d->fan = (p[7] & 7);
-            d->targetlow = 10 * (p[8] + 100);
-            d->targethigh = 10 * (p[9] + 100);
-            d->faikinset = 1;
+         } else if (man == 0xE9C)
+         {                      // A&A
+            if (*p == 9 && p[4] == 'F')
+            {                   // Faikin
+               if (!d)
+                  d = bleenv_find (&event->disc.addr, 1);
+               if (d)
+               {
+                  d->temp = ((p[5] << 8) + p[6]) - 4000;
+                  d->power = ((p[7] & 0x80) ? 1 : 0);
+                  d->rad = ((p[7] & 0x40) ? 1 : 0);
+                  d->mode = ((p[7] >> 3) & 7);
+                  d->fan = (p[7] & 7);
+                  d->targetlow = 10 * (p[8] + 100);
+                  d->targethigh = 10 * (p[9] + 100);
+                  d->faikinset = 1;
+               }
+            }
          } else
             man = 0;            // Unknown
       }
