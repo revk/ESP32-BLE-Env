@@ -477,7 +477,7 @@ add_name (uint8_t * data, uint8_t p, uint8_t len, const char *name)
 static void
 ble_adv (const char *name, uint8_t * data, uint8_t len)
 {
-   //ESP_LOG_BUFFER_HEX_LEVEL ("ADV", data, len, ESP_LOG_ERROR);
+   ESP_LOG_BUFFER_HEX_LEVEL ("ADV", data, len, ESP_LOG_ERROR);
    ble_gap_adv_set_data (data, len);
    uint8_t rsp[MAX_ADV],
      p = 0;
