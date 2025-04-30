@@ -181,7 +181,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
    char macname[15];
    if (!name)
    {                            // Make a name from MAC
-      sprintf (macname, "%c-%02X%02X%02X%02X%02X%02X", 13, event->disc.addr.val[5], event->disc.addr.val[4],
+      sprintf (macname, "%c%c%02X%02X%02X%02X%02X%02X", 13, 8, event->disc.addr.val[5], event->disc.addr.val[4],
                event->disc.addr.val[3], event->disc.addr.val[2], event->disc.addr.val[1], event->disc.addr.val[0]);
       name = (const uint8_t *) macname;
    }
@@ -199,13 +199,15 @@ bleenv_gap_disc (struct ble_gap_event *event)
       }
       return 0;
    }
-   if (d->namelen != *name - 1 || diff (d->name, name + 2, d->namelen))
+   if ((d->namelen != *name - 1 || diff (d->name, name + 2, d->namelen)) && (name[1] == 9 || !d->namefull))
    {                            // Update name
       memcpy (d->name, name + 2, d->namelen = *name - 1);
       d->name[d->namelen] = 0;
       for (int p = 0; p < d->namelen; p++)
          if (d->name[p] <= ' ')
             d->name[p] = '_';
+      if (name[1] == 9)
+         d->namefull = 1;
    }
    if (temp_2_100)
       d->temp = ((temp_2_100[1] << 8) | temp_2_100[0]); // C*100
@@ -414,59 +416,46 @@ bleenv_run (void)
    ESP_LOGI (TAG, "Starting ELA monitoring");
 }
 
+static uint8_t
+add_name (uint8_t * data, uint8_t p, uint8_t len, const char *name)
+{
+   if (!name || !*name || p + len + 2 >= sizeof (data))
+      return p;
+   // Name
+   int8_t l = strlen (name);
+   int8_t space = sizeof (data) - p - len - 2;
+   if (l > space)
+   {                            // Shortened
+      l = space;
+      data[p++] = (l + 1);
+      data[p++] = (8);
+   } else
+   {                            // Full
+      data[p++] = (l + 1);
+      data[p++] = (9);
+   }
+   while (l--)
+      data[p++] = (*name++);
+   return p;
+}
+
+
 static void
 ble_adv (const char *name, uint8_t * data, uint8_t len)
 {
-   uint8_t rsp[37],
-     p = 0;
-   void add (uint8_t d)
-   {
-      if (p < sizeof (rsp))
-         rsp[p] = d;
-      p++;
-   }
-   if (name && *name)
-   {
-      if (len < sizeof (rsp) - 8)
-      {
-         const char *p = name;
-         int l = strlen (name);
-         if (l + 2 + len < sizeof (rsp))
-         {
-            add (l + 1);
-            add (9);
-         } else
-         {
-            l = sizeof (rsp) - len - 2;
-            add (l + 1);
-            add (8);
-         }
-         while (l--)
-            add (*p++);
-      }
-      int l = strlen (name);
-      const char *p = name;
-      if (l + 2 < sizeof (rsp))
-      {
-         add (l + 1);
-         add (9);
-      } else
-      {
-         l = sizeof (rsp) - 2;
-         add (l + 1);
-         add (8);
-      }
-      while (l--)
-         add (*p++);
-   }
+   ESP_LOG_BUFFER_HEX_LEVEL ("ADV", data, len, ESP_LOG_ERROR);
    ble_gap_adv_set_data (data, len);
-   if (p && p < sizeof (rsp))
-      ble_gap_adv_rsp_set_data (rsp, p);
+   uint8_t rsp[31],
+     p = 0;
+   p = add_name (rsp, p, 0, name);
+   ESP_LOG_BUFFER_HEX_LEVEL ("RSP", rsp, p, ESP_LOG_ERROR);
+   ble_gap_adv_rsp_set_data (rsp, p);
    if (!ble_gap_adv_active ())
    {
       struct ble_gap_adv_params adv_params = { 0 };
       adv_params.conn_mode = BLE_GAP_CONN_MODE_NON;
       adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
+      //adv_params.disc_mode = BLE_GAP_DISC_MODE_LTD;
       int e = ble_gap_adv_start (BLE_OWN_ADDR_PUBLIC, NULL, BLE_HS_FOREVER, &adv_params, NULL, NULL);
       if (e)
          ESP_LOGE ("BLE", "Adv %d", e);
@@ -474,47 +463,66 @@ ble_adv (const char *name, uint8_t * data, uint8_t len)
 }
 
 void
-bleenv_bthome1 (const char *name, float c, float rh, uint16_t co2)
+bleenv_bthome1 (const char *name, float c, float rh, uint16_t co2, float lux)
 {                               // Set up / update advertising BTHome1 format
-   uint8_t data[37],
+   uint8_t data[31],
      p = 0;
-   uint8_t add (uint8_t d)
-   {
-      if (p < sizeof (data))
-         data[p] = d;
-      return p++;
-   }
-   uint8_t len = add (0);
-   add (0x16);                  // BTHome1
-   add (0x1C);
-   add (0x18);
+   data[p++] = (2);             // Len
+   data[p++] = (1);             // Flags
+   data[p++] = (6);             // Discoverable / no BR
+   uint8_t len = 4;
+   if (!isnan (c))
+      len += 4;
+   if (rh)
+      len += 4;
+   if (co2)
+      len += 4;
+   if (lux)
+      len += 5;
+   if (p + len > sizeof (data))
+      return;                   // should not happen
+   p = add_name (data, p, len, name);
+   data[p++] = (len - 1);
+   data[p++] = (0x16);          // BTHome1
+   data[p++] = (0x1C);
+   data[p++] = (0x18);
    if (!isnan (c))
    {
       int16_t C = c * 100;
-      add (0x23);               // temp, C*100
-      add (2);
-      add (C >> 8);
-      add (C & 0xFF);
+      data[p++] = (0x23);       // temp, C*100
+      data[p++] = (2);
+      data[p++] = (C);
+      data[p++] = (C >> 8);
    }
    if (rh)
    {
       uint16_t H = rh * 100;
-      add (0x03);               // humidity, RH*100
-      add (3);
-      add (H >> 8);
-      add (H & 0xFF);
+      data[p++] = (0x03);       // humidity, RH*100
+      data[p++] = (3);
+      data[p++] = (H);
+      data[p++] = (H >> 8);
    }
    if (co2)
    {
-      // TODO CO2
+      data[p++] = (0x12);
+      data[p++] = (2);
+      data[p++] = (co2);
+      data[p++] = (co2 >> 8);
    }
-   data[len] = p + 1 - len;
-   if (p < sizeof (data))
-      ble_adv (name, data, p);
+   if (lux)
+   {
+      uint32_t L = lux * 100;
+      data[p++] = (0x05);
+      data[p++] = (3);
+      data[p++] = (L);
+      data[p++] = (L >> 8);
+      data[p++] = (L >> 16);
+   }
+   ble_adv (name, data, p);
 }
 
 void
-bleenv_bthome2 (const char *name, float c, float rh, uint16_t co2)
+bleenv_bthome2 (const char *name, float c, float rh, uint16_t co2, float lux)
 {                               // Set up / update advertising BTHome2 format
    // TODO
 }
@@ -523,6 +531,7 @@ void
 bleenv_faikin (const char *name, float c, float targetlow, float targethigh, uint8_t power, uint8_t rad, uint8_t mode, uint8_t fan)
 {                               // Set up / update advertising Faikin format
    // TODO
+   // TODO man specific is 0xFF, followed by man id low/high, we are 0x0E9C, so len+0xFF+0x9C+0x0E
 }
 
 #endif
