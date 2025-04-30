@@ -172,6 +172,16 @@ bleenv_gap_disc (struct ble_gap_event *event)
                   d->batset = 1;
                }
             }
+         } else if (man == 0xE9C && *p == 9 && p[4] == 'F')
+         {                      // A&A / Faikin
+            d->temp = ((p[5] << 8) + p[6]) - 4000;
+            d->power = ((p[7] & 0x80) ? 1 : 0);
+            d->rad = ((p[7] & 0x40) ? 1 : 0);
+            d->mode = ((p[7] >> 3) & 7);
+            d->fan = (p[7] & 7);
+            d->targetlow = 10 * (p[8] + 100);
+            d->targethigh = 10 * (p[9] + 100);
+            d->faikinset = 1;
          } else
             man = 0;            // Unknown
       }
@@ -466,9 +476,9 @@ bleenv_bthome1 (const char *name, float c, float rh, uint16_t co2, float lux)
 {                               // Set up / update advertising BTHome1 format
    uint8_t data[MAX_ADV],
      p = 0;
-   data[p++] = (2);             // Len
-   data[p++] = (1);             // Flags
-   data[p++] = (6);             // Discoverable / no BR
+   data[p++] = 2;               // Len
+   data[p++] = 1;               // Flags
+   data[p++] = 6;               // Discoverable / no BR
    uint8_t len = 4;
    if (!isnan (c))
       len += 4;
@@ -481,41 +491,41 @@ bleenv_bthome1 (const char *name, float c, float rh, uint16_t co2, float lux)
    if (p + len > sizeof (data))
       return;                   // should not happen
    p = add_name (data, p, len, name);
-   data[p++] = (len - 1);
-   data[p++] = (0x16);          // BTHome1
-   data[p++] = (0x1C);
-   data[p++] = (0x18);
+   data[p++] = len - 1;
+   data[p++] = 0x16;            // BTHome1
+   data[p++] = 0x1C;
+   data[p++] = 0x18;
    if (!isnan (c))
    {
       int16_t C = c * 100;
-      data[p++] = (0x23);       // temp, C*100
-      data[p++] = (2);
-      data[p++] = (C);
-      data[p++] = (C >> 8);
+      data[p++] = 0x23;         // temp, C*100
+      data[p++] = 2;
+      data[p++] = C;
+      data[p++] = C >> 8;
    }
    if (rh)
    {
       uint16_t H = rh * 100;
-      data[p++] = (0x03);       // humidity, RH*100
-      data[p++] = (3);
-      data[p++] = (H);
-      data[p++] = (H >> 8);
+      data[p++] = 0x03;         // humidity, RH*100
+      data[p++] = 3;
+      data[p++] = H;
+      data[p++] = H >> 8;
    }
    if (co2)
    {
-      data[p++] = (0x12);
-      data[p++] = (2);
-      data[p++] = (co2);
-      data[p++] = (co2 >> 8);
+      data[p++] = 0x12;
+      data[p++] = 2;
+      data[p++] = co2;
+      data[p++] = co2 >> 8;
    }
    if (lux)
    {
       uint32_t L = lux * 100;
-      data[p++] = (0x05);
-      data[p++] = (3);
-      data[p++] = (L);
-      data[p++] = (L >> 8);
-      data[p++] = (L >> 16);
+      data[p++] = 0x05;
+      data[p++] = 3;
+      data[p++] = L;
+      data[p++] = L >> 8;
+      data[p++] = L >> 16;
    }
    ble_adv (name, data, p);
 }
@@ -523,14 +533,99 @@ bleenv_bthome1 (const char *name, float c, float rh, uint16_t co2, float lux)
 void
 bleenv_bthome2 (const char *name, float c, float rh, uint16_t co2, float lux)
 {                               // Set up / update advertising BTHome2 format
-   // TODO
+   uint8_t data[MAX_ADV],
+     p = 0;
+   data[p++] = 2;               // Len
+   data[p++] = 1;               // Flags
+   data[p++] = 6;               // Discoverable / no BR
+   uint8_t len = 5;
+   if (!isnan (c))
+      len += 3;
+   if (rh)
+      len += 3;
+   if (co2)
+      len += 3;
+   if (lux)
+      len += 4;
+   if (p + len > sizeof (data))
+      return;                   // should not happen
+   data[p++] = len - 1;
+   data[p++] = 0x16;            // BTHome2
+   data[p++] = 0xD2;
+   data[p++] = 0xFC;
+   data[p++] = 0x40;            // v2
+
+   if (!isnan (c))
+   {
+      int16_t C = c * 100;
+      data[p++] = 0x02;         // temp, C*100
+      data[p++] = C;
+      data[p++] = C >> 8;
+   }
+   if (rh)
+   {
+      uint16_t H = rh * 100;
+      data[p++] = 0x03;         // humidity, RH*100
+      data[p++] = H;
+      data[p++] = H >> 8;
+   }
+   if (co2)
+   {
+      data[p++] = 0x12;
+      data[p++] = co2;
+      data[p++] = co2 >> 8;
+   }
+   if (lux)
+   {
+      uint32_t L = lux * 100;
+      data[p++] = 0x05;
+      data[p++] = L;
+      data[p++] = L >> 8;
+      data[p++] = L >> 16;
+   }
+   p = add_name (data, p, 0, name);
+   ble_adv (name, data, p);
 }
 
 void
 bleenv_faikin (const char *name, float c, float targetlow, float targethigh, uint8_t power, uint8_t rad, uint8_t mode, uint8_t fan)
 {                               // Set up / update advertising Faikin format
-   // TODO
-   // TODO man specific is 0xFF, followed by man id low/high, we are 0x0E9C, so len+0xFF+0x9C+0x0E
+   if (mode > 7)
+      mode = 0;
+   if (fan > 7)
+      fan = 0;
+   if (c < -40)
+      c = -40;
+   if (c > 40)
+      c = 40;
+   if (targetlow < 10)
+      targetlow = 10;
+   if (targetlow > 35)
+      targetlow = 35;
+   if (targethigh < 10)
+      targethigh = 10;
+   if (targethigh > 35)
+      targethigh = 35;
+   uint8_t data[MAX_ADV],
+     p = 0;
+   data[p++] = 2;               // Len
+   data[p++] = 1;               // Flags
+   data[p++] = 6;               // Discoverable / no BR
+   data[p++] = 9;               // Len
+   data[p++] = 0xFF;            // Manufacturer specific
+   data[p++] = 0x9C;            // A&A
+   data[p++] = 0x0E;
+   data[p++] = 'F';             // Message
+   data[p++] = (power ? 0x80 : 0) + (rad ? 0x40 : 0) + (mode << 3) + fan;
+   int16_t T = (c + 40) * 100;  // 13 bits
+   data[p++] = T >> 8;          // top 3 bits reserved
+   data[p++] = T;
+   T = (targetlow - 10) * 10;
+   data[p++] = T;
+   T = (targethigh - 10) * 10;
+   data[p++] = T;
+   p = add_name (data, p, 0, name);
+   ble_adv (name, data, p);
 }
 
 #endif

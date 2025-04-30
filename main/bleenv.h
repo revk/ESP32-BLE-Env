@@ -20,16 +20,23 @@ struct bleenv_s
    uint32_t lastbetter;         // uptime when last better entry
    uint32_t last;               // uptime of last seen
    uint32_t lastreport;         // uptime of last reported
-   int16_t temp;                // Temp *100
+   int16_t temp;                // Temp C*100
    int16_t tempreport;          // Temp last reported
    uint16_t volt;               // Bat voltage mV
    uint16_t hum;                // Hum %*100
    int8_t bat;                  // Bat %
-   uint8_t updated:1;		// found/missing/set updated (for user to clear when they have handled)
+   int16_t targetlow;           // Faikin, target C*100
+   int16_t targethigh;          // Faikin, target C*100
+   uint8_t power:1;             // Faikin power
+   uint8_t rad:1;               // Faikin radiator
+   uint8_t mode:3;              // Faikin mode          Unspecified,Auto,Fan,Dry,Cool,Heat,Reserved,Faikin
+   uint8_t fan:3;               // Faikin fan           Unspecified,Auto,1,2,3,4,5,Quiet
+   uint8_t updated:1;           // found/missing/set updated (for user to clear when they have handled)
    uint8_t found:1;
    uint8_t missing:1;
    uint8_t namefull:1;
-   uint8_t tempset:1;           // If fields set
+   uint8_t faikinset:1;         // If fields set
+   uint8_t tempset:1;
    uint8_t humset:1;
    uint8_t batset:1;
    uint8_t voltset:1;
@@ -42,9 +49,10 @@ int bleenv_gap_disc (struct ble_gap_event *event);      // Handle GAP disc event
 void bleenv_expire (uint32_t missingtime);      // Expire (i.e. missing)
 void bleenv_clean (void);       // Delete old entries
 
-void bleenv_bthome1(const char *name,float c,float rh,uint16_t co2,float lux);
-void bleenv_bthome2(const char *name,float c,float rh,uint16_t co2,float lux);
-void bleenv_faikin(const char *name,float c,float targetlow,float targethigh,uint8_t power,uint8_t rad,uint8_t mode,uint8_t fan);
+void bleenv_bthome1 (const char *name, float c, float rh, uint16_t co2, float lux);
+void bleenv_bthome2 (const char *name, float c, float rh, uint16_t co2, float lux);
+void bleenv_faikin (const char *name, float c, float targetlow, float targethigh, uint8_t power, uint8_t rad, uint8_t mode,
+                    uint8_t fan);
 
 void bleenv_run (void);         // Run BLE for ELA
 #endif
