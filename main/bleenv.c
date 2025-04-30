@@ -184,11 +184,25 @@ bleenv_gap_disc (struct ble_gap_event *event)
                   d->rad = ((p[5] & 0x40) ? 1 : 0);
                   d->mode = ((p[5] >> 3) & 7);
                   d->fan = (p[5] & 7);
-                  d->temp = (((p[6] & 0x1F) << 8) + p[7]) - 4000;
-                  d->targetlow = 10 * (p[8] + 100);
-                  d->targethigh = 10 * (p[9] + 100);
+                  if (p[6] & 0x80)
+                  {
+                     d->temp = (((p[6] & 0x1F) << 8) + p[7]) - 4000;
+                     d->tempset = 1;
+                  } else
+                     d->tempset = 0;
+                  if (p[6] & 0x40)
+                  {
+                     d->targetlow = 10 * (p[8] + 100);
+                     d->targetlowset = 1;
+                  } else
+                     d->targetlowset = 0;
+                  if (p[6] & 0x20)
+                  {
+                     d->targethigh = 10 * (p[9] + 100);
+                     d->targethighset = 1;
+                  } else
+                     d->targethighset = 0;
                   d->faikinset = 1;
-                  d->tempset = 1;
                }
             }
          } else
@@ -603,18 +617,27 @@ bleenv_faikin (const char *name, float c, float targetlow, float targethigh, uin
       mode = 0;
    if (fan > 7)
       fan = 0;
-   if (c < -40)
-      c = -40;
-   if (c > 40)
-      c = 40;
-   if (targetlow < 10)
-      targetlow = 10;
-   if (targetlow > 35)
-      targetlow = 35;
-   if (targethigh < 10)
-      targethigh = 10;
-   if (targethigh > 35)
-      targethigh = 35;
+   if (!isnan (c))
+   {
+      if (c < -40)
+         c = -40;
+      else if (c > 40)
+         c = 40;
+   }
+   if (!isnan (targetlow))
+   {
+      if (targetlow < 10)
+         targetlow = 10;
+      else if (targetlow > 35)
+         targetlow = 35;
+   }
+   if (!isnan (targethigh))
+   {
+      if (targethigh < 10)
+         targethigh = 10;
+      else if (targethigh > 35)
+         targethigh = 35;
+   }
    uint8_t data[MAX_ADV],
      p = 0;
    data[p++] = 2;               // Len
@@ -626,12 +649,18 @@ bleenv_faikin (const char *name, float c, float targetlow, float targethigh, uin
    data[p++] = 0x0E;
    data[p++] = 'F';             // Message
    data[p++] = (power ? 0x80 : 0) + (rad ? 0x40 : 0) + (mode << 3) + fan;
-   int16_t T = (c + 40) * 100;  // 13 bits
-   data[p++] = T >> 8;          // top 3 bits reserved
+   int16_t T = 0;
+   if (!isnan (c))
+      T = 0x8000 + (c + 40) * 100;      // 13 bits - top bits are if temp/targets set
+   if (!isnan (targetlow))
+      T |= 0x4000;
+   if (!isnan (targethigh))
+      T |= 0x2000;
+   data[p++] = T >> 8;
    data[p++] = T;
-   T = (targetlow - 10) * 10;
+   T = (isnan (targetlow) ? 0 : (targetlow - 10) * 10);
    data[p++] = T;
-   T = (targethigh - 10) * 10;
+   T = (isnan (targethigh) ? 0 : (targethigh - 10) * 10);
    data[p++] = T;
    p = add_name (data, p, 0, name);
    ble_adv (name, data, p);

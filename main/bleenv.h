@@ -36,6 +36,8 @@ struct bleenv_s
    uint8_t missing:1;
    uint8_t namefull:1;
    uint8_t faikinset:1;         // If fields set
+   uint8_t targetlowset:1;
+   uint8_t targethighset:1;
    uint8_t tempset:1;
    uint8_t humset:1;
    uint8_t batset:1;
