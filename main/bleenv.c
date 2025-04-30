@@ -7,6 +7,7 @@
 #include "math.h"
 
 static const char TAG[] = "bleenv";
+#define	MAX_ADV	31
 
 bleenv_t *bleenv = NULL;
 
@@ -40,7 +41,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
 {
    const uint8_t *p = event->disc.data,
       *e = p + event->disc.length_data;
-   if (e > p + 31)
+   if (e > p + MAX_ADV)
       return 0;                 // Silly
    bleenv_t *d = bleenv_find (&event->disc.addr, 0);
    //if (d) ESP_LOG_BUFFER_HEX(event->disc.event_type == BLE_HCI_ADV_RPT_EVTYPE_SCAN_RSP ? "Rsp" : "Adv", event->disc.data, event->disc.length_data);
@@ -419,11 +420,11 @@ bleenv_run (void)
 static uint8_t
 add_name (uint8_t * data, uint8_t p, uint8_t len, const char *name)
 {
-   if (!name || !*name || p + len + 2 >= sizeof (data))
+   if (!name || !*name || p + len + 2 >= MAX_ADV)
       return p;
    // Name
    int8_t l = strlen (name);
-   int8_t space = sizeof (data) - p - len - 2;
+   int8_t space = MAX_ADV - p - len - 2;
    if (l > space)
    {                            // Shortened
       l = space;
@@ -443,29 +444,27 @@ add_name (uint8_t * data, uint8_t p, uint8_t len, const char *name)
 static void
 ble_adv (const char *name, uint8_t * data, uint8_t len)
 {
-   ESP_LOG_BUFFER_HEX_LEVEL ("ADV", data, len, ESP_LOG_ERROR);
+   //ESP_LOG_BUFFER_HEX_LEVEL ("ADV", data, len, ESP_LOG_ERROR);
    ble_gap_adv_set_data (data, len);
-   uint8_t rsp[31],
+   uint8_t rsp[MAX_ADV],
      p = 0;
    p = add_name (rsp, p, 0, name);
-   ESP_LOG_BUFFER_HEX_LEVEL ("RSP", rsp, p, ESP_LOG_ERROR);
+   //ESP_LOG_BUFFER_HEX_LEVEL ("RSP", rsp, p, ESP_LOG_ERROR);
    ble_gap_adv_rsp_set_data (rsp, p);
    if (!ble_gap_adv_active ())
    {
       struct ble_gap_adv_params adv_params = { 0 };
       adv_params.conn_mode = BLE_GAP_CONN_MODE_NON;
       adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
-      //adv_params.disc_mode = BLE_GAP_DISC_MODE_LTD;
       int e = ble_gap_adv_start (BLE_OWN_ADDR_PUBLIC, NULL, BLE_HS_FOREVER, &adv_params, NULL, NULL);
-      if (e)
-         ESP_LOGE ("BLE", "Adv %d", e);
+      ESP_LOGE ("BLE", "Adv started %d", e);
    }
 }
 
 void
 bleenv_bthome1 (const char *name, float c, float rh, uint16_t co2, float lux)
 {                               // Set up / update advertising BTHome1 format
-   uint8_t data[31],
+   uint8_t data[MAX_ADV],
      p = 0;
    data[p++] = (2);             // Len
    data[p++] = (1);             // Flags
