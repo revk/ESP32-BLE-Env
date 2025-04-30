@@ -490,7 +490,7 @@ ble_adv (const char *name, uint8_t * data, uint8_t len)
       adv_params.conn_mode = BLE_GAP_CONN_MODE_NON;
       adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
       int e = ble_gap_adv_start (BLE_OWN_ADDR_PUBLIC, NULL, BLE_HS_FOREVER, &adv_params, NULL, NULL);
-      ESP_LOGE ("BLE", "Adv started %d", e);
+      ESP_LOGD ("BLE", "Adv started %d", e);
    }
 }
 
