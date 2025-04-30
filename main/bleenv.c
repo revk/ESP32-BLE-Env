@@ -180,11 +180,11 @@ bleenv_gap_disc (struct ble_gap_event *event)
                   d = bleenv_find (&event->disc.addr, 1);
                if (d)
                {
-                  d->temp = ((p[5] << 8) + p[6]) - 4000;
-                  d->power = ((p[7] & 0x80) ? 1 : 0);
-                  d->rad = ((p[7] & 0x40) ? 1 : 0);
-                  d->mode = ((p[7] >> 3) & 7);
-                  d->fan = (p[7] & 7);
+                  d->power = ((p[5] & 0x80) ? 1 : 0);
+                  d->rad = ((p[5] & 0x40) ? 1 : 0);
+                  d->mode = ((p[5] >> 3) & 7);
+                  d->fan = (p[5] & 7);
+                  d->temp = (((p[6] & 0x1F) << 8) + p[7]) - 4000;
                   d->targetlow = 10 * (p[8] + 100);
                   d->targethigh = 10 * (p[9] + 100);
                   d->faikinset = 1;
