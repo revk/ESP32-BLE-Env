@@ -188,6 +188,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
                   d->targetlow = 10 * (p[8] + 100);
                   d->targethigh = 10 * (p[9] + 100);
                   d->faikinset = 1;
+                  d->tempset = 1;
                }
             }
          } else
