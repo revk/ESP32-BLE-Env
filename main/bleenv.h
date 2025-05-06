@@ -25,8 +25,8 @@ struct bleenv_s
    uint16_t volt;               // Bat voltage mV
    uint16_t hum;                // Hum %*100
    int8_t bat;                  // Bat %
-   int16_t targetlow;           // Faikin, target C*100
-   int16_t targethigh;          // Faikin, target C*100
+   int16_t targetmin;           // Faikin, target C*100
+   int16_t targetmax;          // Faikin, target C*100
    uint8_t power:1;             // Faikin power
    uint8_t rad:1;               // Faikin radiator
    uint8_t mode:3;              // Faikin mode          Unspecified,Auto,Fan,Dry,Cool,Heat,Reserved,Faikin
@@ -36,8 +36,8 @@ struct bleenv_s
    uint8_t missing:1;
    uint8_t namefull:1;
    uint8_t faikinset:1;         // If fields set
-   uint8_t targetlowset:1;
-   uint8_t targethighset:1;
+   uint8_t targetminset:1;
+   uint8_t targetmaxset:1;
    uint8_t tempset:1;
    uint8_t humset:1;
    uint8_t batset:1;
@@ -53,7 +53,7 @@ void bleenv_clean (void);       // Delete old entries
 
 void bleenv_bthome1 (const char *name, float c, float rh, uint16_t co2, float lux);
 void bleenv_bthome2 (const char *name, float c, float rh, uint16_t co2, float lux);
-void bleenv_faikin (const char *name, float c, float targetlow, float targethigh, uint8_t power, uint8_t rad, uint8_t mode,
+void bleenv_faikin (const char *name, float c, float targetmin, float targetmax, uint8_t power, uint8_t rad, uint8_t mode,
                     uint8_t fan);
 
 void bleenv_run (void);         // Run BLE for ELA

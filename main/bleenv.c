@@ -192,16 +192,16 @@ bleenv_gap_disc (struct ble_gap_event *event)
                      d->tempset = 0;
                   if (p[6] & 0x40)
                   {
-                     d->targetlow = 10 * (p[8] + 100);
-                     d->targetlowset = 1;
+                     d->targetmin = 10 * (p[8] + 100);
+                     d->targetminset = 1;
                   } else
-                     d->targetlowset = 0;
+                     d->targetminset = 0;
                   if (p[6] & 0x20)
                   {
-                     d->targethigh = 10 * (p[9] + 100);
-                     d->targethighset = 1;
+                     d->targetmax = 10 * (p[9] + 100);
+                     d->targetmaxset = 1;
                   } else
-                     d->targethighset = 0;
+                     d->targetmaxset = 0;
                   d->faikinset = 1;
                }
             }
@@ -611,7 +611,7 @@ bleenv_bthome2 (const char *name, float c, float rh, uint16_t co2, float lux)
 }
 
 void
-bleenv_faikin (const char *name, float c, float targetlow, float targethigh, uint8_t power, uint8_t rad, uint8_t mode, uint8_t fan)
+bleenv_faikin (const char *name, float c, float targetmin, float targetmax, uint8_t power, uint8_t rad, uint8_t mode, uint8_t fan)
 {                               // Set up / update advertising Faikin format
    if (mode > 7)
       mode = 0;
@@ -624,19 +624,19 @@ bleenv_faikin (const char *name, float c, float targetlow, float targethigh, uin
       else if (c > 40)
          c = 40;
    }
-   if (!isnan (targetlow))
+   if (!isnan (targetmin))
    {
-      if (targetlow < 10)
-         targetlow = 10;
-      else if (targetlow > 35)
-         targetlow = 35;
+      if (targetmin < 10)
+         targetmin = 10;
+      else if (targetmin > 35)
+         targetmin = 35;
    }
-   if (!isnan (targethigh))
+   if (!isnan (targetmax))
    {
-      if (targethigh < 10)
-         targethigh = 10;
-      else if (targethigh > 35)
-         targethigh = 35;
+      if (targetmax < 10)
+         targetmax = 10;
+      else if (targetmax > 35)
+         targetmax = 35;
    }
    uint8_t data[MAX_ADV],
      p = 0;
@@ -652,15 +652,15 @@ bleenv_faikin (const char *name, float c, float targetlow, float targethigh, uin
    int16_t T = 0;
    if (!isnan (c))
       T = 0x8000 + (c + 40) * 100;      // 13 bits - top bits are if temp/targets set
-   if (!isnan (targetlow))
+   if (!isnan (targetmin))
       T |= 0x4000;
-   if (!isnan (targethigh))
+   if (!isnan (targetmax))
       T |= 0x2000;
    data[p++] = T >> 8;
    data[p++] = T;
-   T = (isnan (targetlow) ? 0 : (targetlow - 10) * 10);
+   T = (isnan (targetmin) ? 0 : (targetmin - 10) * 10);
    data[p++] = T;
-   T = (isnan (targethigh) ? 0 : (targethigh - 10) * 10);
+   T = (isnan (targetmax) ? 0 : (targetmax - 10) * 10);
    data[p++] = T;
    p = add_name (data, p, 0, name);
    ble_adv (name, data, p);
