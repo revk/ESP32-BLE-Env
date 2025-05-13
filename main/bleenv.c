@@ -10,8 +10,7 @@ static const char TAG[] = "bleenv";
 #define	MAX_ADV	31
 
 bleenv_t *bleenv = NULL;
-static volatile uint8_t active = 1;     // Next run needs to be active
-// TODO may be better per device?
+static volatile uint8_t active = 30;    // Next run needs to be active (number of runs / seconds)
 
 bleenv_t *
 bleenv_find (ble_addr_t * a, int make)
@@ -36,7 +35,7 @@ bleenv_find (ble_addr_t * a, int make)
       d->missing = 1;
       d->updated = 1;
       bleenv = d;
-      active = 1;               // Get more info if we can
+      active = 30;              // Get more info if we can
    }
    d->last = uptime ();
    return d;
@@ -393,8 +392,9 @@ ble_start_disc (void)
       .passive = active ? 0 : 1,
    };
    //ESP_LOGE(TAG,"Disc %s",active?"active":"passive");
-   active = 0;
-   if (ble_gap_disc (0 /* public */ , 5000, &disc_params, ble_gap_event, NULL))
+   if (active)
+      active--;
+   if (ble_gap_disc (0 /* public */ , 1000, &disc_params, ble_gap_event, NULL))
       ESP_LOGE (TAG, "Discover failed to start");
 }
 
