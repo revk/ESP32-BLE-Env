@@ -32,17 +32,16 @@ send_ha_config (bleenv_t * d)
 {
    d->updated = 0;
    char *tag;
-   asprintf (&tag, "/%s", d->name);
+   asprintf (&tag, "/BKE-%s", d->mac);
    char *id,
     *name;
-   asprintf (&id, "temp-%s", d->name);
+   asprintf (&id, "temp-%s", d->mac);
    asprintf (&name, "Temp %s", d->name);
  ha_config_sensor (id, name: name, stat: tag, field: "temp", type: "temperature", unit: "°C", delete:!ha || !d->tempset ||
-                     d->
-                     missing);
+                     d->missing);
    free (id);
    free (name);
-   asprintf (&id, "humidity-%s", d->name);
+   asprintf (&id, "humidity-%s", d->mac);
    asprintf (&name, "R/H %s", d->name);
  ha_config_sensor (id, name: name, stat: tag, field: "rh", type: "humidity", unit: "%", delete:!ha || !d->humset || d->missing);
    free (id);
@@ -118,7 +117,8 @@ jinfo (bleenv_t * d)
          jo_litf (j, "rh", "%u.%02u", d->hum / 100, d->hum % 100);
    }
    jo_string (j, "address", ble_addr_format (&d->addr));
-   jo_string (j, "name", d->name);
+   jo_stringf (j, "name", "BLE-%s", d->name);
+   jo_string (j, "mac", d->mac);
    f ();
    jo_int (j, "rssi", d->rssi);
    return j;
@@ -204,7 +204,7 @@ web_info (httpd_req_t * req)
 void
 app_main ()
 {
-	ESP_LOGE(TAG,"Started");
+   ESP_LOGE (TAG, "Started");
    revk_boot (&app_callback);
    revk_start ();
 
