@@ -14,7 +14,8 @@ struct bleenv_s
    ble_addr_t addr;             // Address (includes type)
    uint8_t namelen;             // Device name length
    char name[32];               // Device name (null terminated)
-   char better[13];             // ID (Mac) of better device
+   char mac[13];                // MAC (hex)
+   char better[13];             // ID (MAC) of better device
    int8_t betterrssi;           // Better RSSI
    int8_t rssi;                 // RSSI
    uint32_t lastbetter;         // uptime when last better entry

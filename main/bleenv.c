@@ -10,7 +10,7 @@ static const char TAG[] = "bleenv";
 #define	MAX_ADV	31
 
 bleenv_t *bleenv = NULL;
-static volatile uint8_t active = 1;      // Next run needs to be active
+static volatile uint8_t active = 1;     // Next run needs to be active
 // TODO may be better per device?
 
 bleenv_t *
@@ -29,6 +29,9 @@ bleenv_find (ble_addr_t * a, int make)
          return d;
       memset (d, 0, sizeof (*d));
       d->addr = *a;
+      sprintf (d->mac, "%02X%02X%02X%02X%02X%02X", a->val[5], a->val[4], a->val[3], a->val[2], a->val[1], a->val[0]);
+      strcpy (d->name, d->mac); // Default name
+      d->namelen = 12;
       d->next = bleenv;
       d->missing = 1;
       d->updated = 1;
@@ -223,13 +226,6 @@ bleenv_gap_disc (struct ble_gap_event *event)
    }
    if (!d && !env && !man && !temp_2_100 && !temp_2_10 && !temp_1 && !temp_1_35)
       return 0;                 // No temp
-   char macname[15];
-   if (!name)
-   {                            // Make a name from MAC
-      sprintf (macname, "%c%c%02X%02X%02X%02X%02X%02X", 13, 8, event->disc.addr.val[5], event->disc.addr.val[4],
-               event->disc.addr.val[3], event->disc.addr.val[2], event->disc.addr.val[1], event->disc.addr.val[0]);
-      name = (const uint8_t *) macname;
-   }
    if (!d)
       d = bleenv_find (&event->disc.addr, 1);
    int diff (const char *a, const uint8_t * b, int len)
@@ -244,7 +240,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
       }
       return 0;
    }
-   if ((d->namelen != *name - 1 || diff (d->name, name + 2, d->namelen)) && (name[1] == 9 || !d->namefull))
+   if (name && (d->namelen != *name - 1 || diff (d->name, name + 2, d->namelen)) && (name[1] == 9 || !d->namefull))
    {                            // Update name
       memcpy (d->name, name + 2, d->namelen = *name - 1);
       d->name[d->namelen] = 0;
