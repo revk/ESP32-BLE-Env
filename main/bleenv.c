@@ -10,7 +10,8 @@ static const char TAG[] = "bleenv";
 #define	MAX_ADV	31
 
 bleenv_t *bleenv = NULL;
-static uint8_t active = 1;      // Next run needs to be active
+static volatile uint8_t active = 1;      // Next run needs to be active
+// TODO may be better per device?
 
 bleenv_t *
 bleenv_find (ble_addr_t * a, int make)
@@ -397,7 +398,7 @@ ble_start_disc (void)
    };
    //ESP_LOGE(TAG,"Disc %s",active?"active":"passive");
    active = 0;
-   if (ble_gap_disc (0 /* public */ , 1000, &disc_params, ble_gap_event, NULL))
+   if (ble_gap_disc (0 /* public */ , 5000, &disc_params, ble_gap_event, NULL))
       ESP_LOGE (TAG, "Discover failed to start");
 }
 
