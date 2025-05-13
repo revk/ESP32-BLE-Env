@@ -147,7 +147,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
             }
             if (*d == 0x12 && d + 3 <= n)
             {
-               co2 = (d[2] << 8) + c[1];
+               co2 = d[1] + (d[2] << 8);
                d += 3;
             }
             break;
@@ -287,10 +287,9 @@ bleenv_gap_disc (struct ble_gap_event *event)
    if (co2)
    {
       d->co2 = co2;
-   d->co2set = 1;
-   }
-   else
-   d->co2set = 0;
+      d->co2set = 1;
+   } else
+      d->co2set = 0;
    if (env)
    {
       if (*env == 18)
