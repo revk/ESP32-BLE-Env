@@ -26,7 +26,7 @@ struct bleenv_s
    uint16_t hum;                // Hum %*100
    int8_t bat;                  // Bat %
    int16_t targetmin;           // Faikin, target C*100
-   int16_t targetmax;          // Faikin, target C*100
+   int16_t targetmax;           // Faikin, target C*100
    uint16_t co2;
    uint8_t power:1;             // Faikin power
    uint8_t rad:1;               // Faikin radiator
@@ -58,5 +58,5 @@ void bleenv_bthome2 (const char *name, float c, float rh, uint16_t co2, float lu
 void bleenv_faikin (const char *name, float c, float targetmin, float targetmax, uint8_t power, uint8_t rad, uint8_t mode,
                     uint8_t fan);
 
-void bleenv_run (void);         // Run BLE for ELA
+void bleenv_run (uint8_t passive);         // Run BLE for ELA
 #endif

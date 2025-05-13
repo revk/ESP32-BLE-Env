@@ -10,6 +10,7 @@ static const char TAG[] = "bleenv";
 #define	MAX_ADV	31
 
 bleenv_t *bleenv = NULL;
+static uint8_t passive = 0;
 
 bleenv_t *
 bleenv_find (ble_addr_t * a, int make)
@@ -408,7 +409,7 @@ static void
 ble_start_disc (void)
 {
    struct ble_gap_disc_params disc_params = {
-      //.passive = 1,
+      .passive = passive,
    };
    if (ble_gap_disc (0 /* public */ , BLE_HS_FOREVER, &disc_params, ble_gap_event, NULL))
       ESP_LOGE (TAG, "Discover failed to start");
@@ -446,8 +447,9 @@ ble_task (void *param)
 }
 
 void
-bleenv_run (void)
+bleenv_run (uint8_t pass)
 {                               // Just run BLE for ELA only
+   passive = pass;
    REVK_ERR_CHECK (esp_wifi_set_ps (WIFI_PS_MIN_MODEM));        /* default mode, but library may have overridden, needed for BLE at same time as wifi */
    nimble_port_init ();
 
