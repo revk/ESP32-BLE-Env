@@ -10,7 +10,7 @@ static const char TAG[] = "bleenv";
 #define	MAX_ADV	31
 
 bleenv_t *bleenv = NULL;
-static uint8_t passive = 0;
+static uint8_t active = 1;      // Next run needs to be active
 
 bleenv_t *
 bleenv_find (ble_addr_t * a, int make)
@@ -32,6 +32,7 @@ bleenv_find (ble_addr_t * a, int make)
       d->missing = 1;
       d->updated = 1;
       bleenv = d;
+      active = 1;               // Get more info if we can
    }
    d->last = uptime ();
    return d;
@@ -45,7 +46,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
    if (e > p + MAX_ADV)
       return 0;                 // Silly
    bleenv_t *d = bleenv_find (&event->disc.addr, 0);
-   //if (d) ESP_LOG_BUFFER_HEX(event->disc.event_type == BLE_HCI_ADV_RPT_EVTYPE_SCAN_RSP ? "Rsp" : "Adv", event->disc.data, event->disc.length_data);
+   //if (d) ESP_LOG_BUFFER_HEX_LEVEL(event->disc.event_type == BLE_HCI_ADV_RPT_EVTYPE_SCAN_RSP ? "Rsp" : "Adv", event->disc.data, event->disc.length_data,ESP_LOG_ERROR);
    // Check if a temp device
    const uint8_t *name = NULL;
    const uint8_t *temp_2_100 = NULL;    // Temp as two bytes * 0.01
@@ -386,6 +387,19 @@ ble_addr_format (ble_addr_t * a)
 
 struct ble_hs_cfg;
 struct ble_gatt_register_ctxt;
+static int ble_gap_event (struct ble_gap_event *event, void *arg);
+
+static void
+ble_start_disc (void)
+{
+   struct ble_gap_disc_params disc_params = {
+      .passive = active ? 0 : 1,
+   };
+   //ESP_LOGE(TAG,"Disc %s",active?"active":"passive");
+   active = 0;
+   if (ble_gap_disc (0 /* public */ , 1000, &disc_params, ble_gap_event, NULL))
+      ESP_LOGE (TAG, "Discover failed to start");
+}
 
 static int
 ble_gap_event (struct ble_gap_event *event, void *arg)
@@ -397,22 +411,17 @@ ble_gap_event (struct ble_gap_event *event, void *arg)
          bleenv_gap_disc (event);
          break;
       }
+   case BLE_GAP_EVENT_DISC_COMPLETE:
+      {
+         ble_start_disc ();
+         break;
+      }
    default:
       ESP_LOGD (TAG, "BLE event %d", event->type);
       break;
    }
 
    return 0;
-}
-
-static void
-ble_start_disc (void)
-{
-   struct ble_gap_disc_params disc_params = {
-      .passive = passive,
-   };
-   if (ble_gap_disc (0 /* public */ , BLE_HS_FOREVER, &disc_params, ble_gap_event, NULL))
-      ESP_LOGE (TAG, "Discover failed to start");
 }
 
 static uint8_t ble_addr_type;
@@ -447,9 +456,8 @@ ble_task (void *param)
 }
 
 void
-bleenv_run (uint8_t pass)
+bleenv_run (void)
 {                               // Just run BLE for ELA only
-   passive = pass;
    REVK_ERR_CHECK (esp_wifi_set_ps (WIFI_PS_MIN_MODEM));        /* default mode, but library may have overridden, needed for BLE at same time as wifi */
    nimble_port_init ();
 

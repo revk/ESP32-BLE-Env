@@ -229,7 +229,7 @@ app_main ()
    }
 
 
-   bleenv_run (0);
+   bleenv_run ();
 
    /* main loop */
    while (1)
