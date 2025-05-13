@@ -56,6 +56,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
    const uint8_t *hum_2_100 = NULL;     // Humidity * 0.01
    const uint8_t *hum_1 = NULL; // Humidity * 1
    const uint8_t *env = NULL;
+   uint16_t co2 = 0;
    uint16_t man = 0;
    while (p < e)
    {
@@ -87,6 +88,8 @@ bleenv_gap_disc (struct ble_gap_event *event)
                hum_2_100 = d + 2;
             else if (*d == 0x03 && d[1] == 0x0C)
                volt = d + 2;
+            else if (*d == 0x12 && d[1] == 0x02)
+               co2 = d[2] + (d[3] << 8);
             d += 1 + (*d & 0x1F);
          }
       } else if (*p >= 4 && p[1] == 0x16 && p[2] == 0xD2 && p[3] == 0xFC && (p[4] & 0xE0) == 0x40 && !(p[4] & 0x01))
@@ -141,6 +144,11 @@ bleenv_gap_disc (struct ble_gap_event *event)
                temp_2_10 = d + 1;
                d += 3;
                continue;
+            }
+            if (*d == 0x12 && d + 3 <= n)
+            {
+               co2 = (d[2] << 8) + c[1];
+               d += 3;
             }
             break;
          }
@@ -276,6 +284,13 @@ bleenv_gap_disc (struct ble_gap_event *event)
       d->humset = 1;
       d->updated = 1;
    }
+   if (co2)
+   {
+      d->co2 = co2;
+   d->co2set = 1;
+   }
+   else
+   d->co2set = 0;
    if (env)
    {
       if (*env == 18)
@@ -394,7 +409,7 @@ static void
 ble_start_disc (void)
 {
    struct ble_gap_disc_params disc_params = {
-      .passive = 1,
+      //.passive = 1,
    };
    if (ble_gap_disc (0 /* public */ , BLE_HS_FOREVER, &disc_params, ble_gap_event, NULL))
       ESP_LOGE (TAG, "Discover failed to start");

@@ -27,6 +27,7 @@ struct bleenv_s
    int8_t bat;                  // Bat %
    int16_t targetmin;           // Faikin, target C*100
    int16_t targetmax;          // Faikin, target C*100
+   uint16_t co2;
    uint8_t power:1;             // Faikin power
    uint8_t rad:1;               // Faikin radiator
    uint8_t mode:3;              // Faikin mode          Unspecified,Auto,Fan,Dry,Cool,Heat,Reserved,Faikin
@@ -42,6 +43,7 @@ struct bleenv_s
    uint8_t humset:1;
    uint8_t batset:1;
    uint8_t voltset:1;
+   uint8_t co2set:1;
 };
 extern bleenv_t *bleenv;
 
