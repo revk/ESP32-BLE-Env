@@ -34,6 +34,7 @@ bleenv_find (ble_addr_t * a, int make)
       d->next = bleenv;
       d->missing = 1;
       d->updated = 1;
+      d->changed = 1;
       bleenv = d;
       active = 30;              // Get more info if we can
    }
@@ -259,6 +260,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
             d->name[p] = '_';
       if (name[1] == 9)
          d->namefull = 1;
+      d->changed = 1;
    }
    if (temp_2_100)
       d->temp = ((temp_2_100[1] << 8) | temp_2_100[0]); // C*100

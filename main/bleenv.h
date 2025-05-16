@@ -34,6 +34,7 @@ struct bleenv_s
    uint8_t mode:3;              // Faikin mode          Unspecified,Auto,Fan,Dry,Cool,Heat,Reserved,Faikin
    uint8_t fan:3;               // Faikin fan           Unspecified,Auto,1,2,3,4,5,Quiet
    uint8_t updated:1;           // found/missing/set updated (for user to clear when they have handled)
+   uint8_t changed:1;		// changed somehow, e.g. name (for user to clean when the have handled)
    uint8_t found:1;
    uint8_t missing:1;
    uint8_t namefull:1;
