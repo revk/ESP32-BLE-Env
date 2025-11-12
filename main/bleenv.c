@@ -227,7 +227,7 @@ bleenv_gap_disc (struct ble_gap_event *event)
                      d->targetmaxset = 1;
                   } else
                      d->targetmaxset = 0;
-                  d->faikinset = 1;
+                  d->faikoutset = 1;
                }
             }
          } else
@@ -645,7 +645,7 @@ bleenv_bthome2 (const char *name, float c, float rh, uint16_t co2, float lux)
 }
 
 void
-bleenv_faikin (const char *name, float c, float targetmin, float targetmax, uint8_t power, uint8_t rad, uint8_t mode, uint8_t fan)
+bleenv_faikout (const char *name, float c, float targetmin, float targetmax, uint8_t power, uint8_t rad, uint8_t mode, uint8_t fan)
 {                               // Set up / update advertising Faikin format
    if (mode > 7)
       mode = 0;
